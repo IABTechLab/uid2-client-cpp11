@@ -446,7 +446,7 @@ namespace uid2
         }
         totalLen += outLen;
 
-        if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_AEAD_GET_TAG, GCM_AUTHTAG_LENGTH, out_encrypted + totalLen)) {
+        if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, GCM_AUTHTAG_LENGTH, out_encrypted + totalLen)) {
             throw std::runtime_error("failed to get tag");
         }
         totalLen += GCM_AUTHTAG_LENGTH;
@@ -477,7 +477,7 @@ namespace uid2
         }
         const int totalLen = outLen;
 
-        if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_AEAD_SET_TAG, GCM_AUTHTAG_LENGTH, (void*)(encrypted + (size - GCM_AUTHTAG_LENGTH))))
+        if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, GCM_AUTHTAG_LENGTH, (void*)(encrypted + (size - GCM_AUTHTAG_LENGTH))))
         {
             throw std::runtime_error("failed to set auth tag for decrypt");
         }
