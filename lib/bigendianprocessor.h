@@ -44,7 +44,11 @@ namespace uid2
 		BigEndianByteReader(const BigEndianByteReader&) = delete;
 		BigEndianByteReader& operator=(const BigEndianByteReader&) = delete;
 
-		uint8_t ReadByte()
+        int GetPosition() const { return position; }
+        int GetRemainingSize() const { return size - position; }
+        const std::uint8_t* GetCurrentData() const { return bytes + GetPosition(); }
+
+        uint8_t ReadByte()
 		{
 			CheckCanRead(1);
 			return bytes[position++];

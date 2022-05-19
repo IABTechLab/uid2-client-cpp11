@@ -26,6 +26,7 @@
 #include "aes.h"
 #include "base64.h"
 #include "bigendianprocessor.h"
+#include "uid2encryption.h"
 
 #include <algorithm>
 #include <cstring>
@@ -51,7 +52,7 @@ static std::vector<std::uint8_t> EncryptImpl(std::vector<std::uint8_t>& data, co
 	return result;
 }
 
-std::string EncryptToken(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params)
+std::string EncryptTokenV2(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params)
 {
 	std::random_device rd;
 	std::vector<std::uint8_t> identityBuffer(4 + 4 + identity.size() + 4 + 8);
@@ -82,4 +83,74 @@ std::string EncryptToken(const std::string& identity, const Key& masterKey, int 
 	rootWriter.WriteBytes(encryptedMaster.data(), 0, encryptedMaster.size());
 
 	return macaron::Base64::Encode(rootBuffer);
+}
+
+std::string EncryptTokenV3(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params)
+{
+    std::uint8_t sitePayload[128];
+    BigEndianByteWriter sitePayloadWriter(sitePayload, sizeof(sitePayload));
+
+    // publisher data
+    sitePayloadWriter.WriteInt32(siteId);
+    sitePayloadWriter.WriteInt64(0); // publisher id
+    sitePayloadWriter.WriteInt32(0); // client key id
+
+    // user identity data
+    sitePayloadWriter.WriteInt32(0); // privacy bits
+    sitePayloadWriter.WriteInt64(Timestamp::Now().AddSeconds(-60).GetEpochMilli()); // established
+    sitePayloadWriter.WriteInt64(Timestamp::Now().AddSeconds(-40).GetEpochMilli()); // refreshed
+    std::vector<std::uint8_t> identityBytes;
+    macaron::Base64::Decode(identity, identityBytes);
+    sitePayloadWriter.WriteBytes(identityBytes.data(), 0, identityBytes.size());
+
+    std::uint8_t masterPayload[256];
+    BigEndianByteWriter masterPayloadWriter(masterPayload, sizeof(masterPayload));
+
+    masterPayloadWriter.WriteInt64(params.tokenExpiry.GetEpochMilli());
+    masterPayloadWriter.WriteInt64(Timestamp::Now().GetEpochMilli()); // token created
+
+    // operator data
+    masterPayloadWriter.WriteInt32(0); // site id
+    masterPayloadWriter.WriteByte(0); // operator type
+    masterPayloadWriter.WriteInt32(0); // operator version
+    masterPayloadWriter.WriteInt32(0); // operator key id
+
+    masterPayloadWriter.WriteInt32((std::int32_t)siteKey.id);
+    const auto masterPayloadLen = masterPayloadWriter.GetPosition()
+            + EncryptGCM(sitePayload, sitePayloadWriter.GetPosition(), siteKey.secret.data(), masterPayload + masterPayloadWriter.GetPosition());
+
+    std::vector<std::uint8_t> rootPayload(256);
+    BigEndianByteWriter writer(rootPayload);
+
+    writer.WriteByte((((std::uint8_t)params.identityScope << 4) | ((std::uint8_t)params.identityType << 2)));
+    writer.WriteByte(112);
+    writer.WriteInt32(masterKey.id);
+
+    const auto rootPayloadLen = writer.GetPosition()
+            + EncryptGCM(masterPayload, masterPayloadLen, masterKey.secret.data(), rootPayload.data() + writer.GetPosition());
+    rootPayload.resize(rootPayloadLen);
+
+    return macaron::Base64::Encode(rootPayload);
+}
+
+std::string EncryptDataV2(const std::vector<std::uint8_t>& data, const uid2::Key& key, int siteId, uid2::Timestamp now)
+{
+    std::random_device rd;
+    std::uint8_t iv[16];
+    std::generate(iv, iv + sizeof(iv), std::ref(rd));
+
+    auto dataBytes = data;
+    const auto encrypted = EncryptImpl(dataBytes, iv, key.secret);
+
+    std::vector<std::uint8_t> rootPayload(encrypted.size() + 64);
+    BigEndianByteWriter writer(rootPayload);
+    writer.WriteByte(128); // payload type
+    writer.WriteByte(1); // version
+    writer.WriteInt64(now.GetEpochMilli());
+    writer.WriteInt32(siteId);
+    writer.WriteInt32((std::int32_t)key.id);
+    writer.WriteBytes(encrypted.data(), 0, encrypted.size());
+    rootPayload.resize(writer.GetPosition());
+
+    return macaron::Base64::Encode(rootPayload);
 }
