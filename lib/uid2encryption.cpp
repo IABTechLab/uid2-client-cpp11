@@ -51,9 +51,6 @@ namespace uid2
     static const int GCM_AUTHTAG_LENGTH = 16;
     static const int GCM_IV_LENGTH = 12;
 
-	static const std::uint8_t* GenerateIv(std::uint8_t* iv);
-	static std::vector<std::uint8_t> AddPadding(const std::uint8_t* data, int size);
-	static void Encrypt(const std::uint8_t* data, int size, const std::uint8_t* iv, const std::uint8_t* secret, std::uint8_t* out_encrypted);
 	static void Decrypt(const std::uint8_t* data, int size, const std::uint8_t* iv, const std::uint8_t* secret, std::vector<std::uint8_t>& out_decrypted);
     static int EncryptGCM(const std::uint8_t* data, int size, const std::uint8_t* iv, const std::uint8_t* secret, std::uint8_t* out_encrypted);
 
@@ -375,21 +372,6 @@ namespace uid2
 
         return DecryptionDataResult::MakeSuccess({payloadReader.GetCurrentData(), payloadReader.GetCurrentData() + payloadReader.GetRemainingSize()}, encryptedAt);
     }
-
-	const std::uint8_t* GenerateIv(std::uint8_t* iv)
-	{
-		const int rc = RAND_bytes(iv, BLOCK_SIZE);
-		if (rc <= 0)
-		{
-			throw std::runtime_error("failed to generate secure random bytes: " + std::to_string(ERR_get_error()));
-		}
-		return iv;
-	}
-
-	void Encrypt(const std::uint8_t* data, int size, const std::uint8_t* iv, const std::uint8_t* secret, std::uint8_t* out_encrypted)
-	{
-		AES256().EncryptCBC(data, size, secret, iv, out_encrypted);
-	}
 
 	void Decrypt(const std::uint8_t* data, int size, const std::uint8_t* iv, const std::uint8_t* secret, std::vector<std::uint8_t>& out_decrypted)
 	{
