@@ -89,17 +89,17 @@ namespace uid2
 	class DecryptionResult
 	{
 	public:
-		static DecryptionResult MakeSuccess(std::string&& identity, Timestamp established, int siteId)
+		static DecryptionResult MakeSuccess(std::string&& identity, Timestamp established, int siteId, int siteKeySiteId)
 		{
-			return DecryptionResult(DecryptionStatus::SUCCESS, std::move(identity), established, siteId);
+			return DecryptionResult(DecryptionStatus::SUCCESS, std::move(identity), established, siteId, siteKeySiteId);
 		}
 		static DecryptionResult MakeError(DecryptionStatus status)
 		{
-			return DecryptionResult(status, std::string(), Timestamp(), -1);
+			return DecryptionResult(status, std::string(), Timestamp(), -1, -1);
 		}
-        static DecryptionResult MakeError(DecryptionStatus status, Timestamp established, int siteId)
+        static DecryptionResult MakeError(DecryptionStatus status, Timestamp established, int siteId, int siteKeySiteId)
         {
-            return DecryptionResult(status, std::string(), established, siteId);
+            return DecryptionResult(status, std::string(), established, siteId, siteKeySiteId);
         }
 
 		bool IsSuccess() const { return Status == DecryptionStatus::SUCCESS; }
@@ -107,15 +107,17 @@ namespace uid2
 		const std::string& GetUid() const { return Identity; }
 		Timestamp GetEstablished() const { return Established; }
 		int GetSiteId() const { return SiteId; }
+        int GetSiteKeySiteId() const { return SiteKeySiteId; }
 
 	private:
-		DecryptionResult(DecryptionStatus status, std::string&& identity, Timestamp established, int siteId)
-			: Status(status), Identity(std::move(identity)), Established(established), SiteId(siteId) {}
+		DecryptionResult(DecryptionStatus status, std::string&& identity, Timestamp established, int siteId, int siteKeySiteId)
+			: Status(status), Identity(std::move(identity)), Established(established), SiteId(siteId), SiteKeySiteId(siteKeySiteId) {}
 
 		DecryptionStatus Status;
 		std::string Identity;
 		Timestamp Established;
 		int SiteId;
+        int SiteKeySiteId;
 	};
 
 	class EncryptionDataRequest
