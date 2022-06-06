@@ -36,9 +36,9 @@ make install
 
 ```
 docker build . -t uid2_client_cpp
-# docker run -it uid2_client_cpp <base-url> <api-key> <advertising-token>
+# docker run -it uid2_client_cpp <base-url> <api-key> <secret-key> <advertising-token>
 # For example:
-docker run -it uid2_client_cpp https://integ.uidapi.com test-id-reader-key \
+docker run -it uid2_client_cpp https://integ.uidapi.com test-id-reader-key your-secret-key \
 	AgAAAANzUr8B6CCM+WBKichZGU8iyDBSI83LXiXa1SW2i4LaVQPzlBtOhjoeUUc3Nv+aOPLwiVol0rnxwdNkJNgm710I4lKAp8kpjqZO6evjN6mVZalwzQA5Y4usQVEtwBkYr3V3MbYR1eI3n0Bc7/KVeanfBXUF4odpHNBEWTAL+YgSCA==
 ```
 

@@ -24,6 +24,7 @@
 #include <uid2/uid2client.h>
 
 #include "base64.h"
+#include "bigendianprocessor.h"
 #include "httplib.h"
 #include "keycontainer.h"
 #include "keyparser.h"
@@ -38,17 +39,22 @@ namespace uid2
 	{
 		std::string endpoint;
 		std::string authKey;
+        std::vector<std::uint8_t> secretKey;
+        IdentityScope identityScope;
 		httplib::Client httpClient;
 		std::shared_ptr<KeyContainer> container;
 		mutable std::recursive_mutex refreshMutex;
 		mutable std::mutex containerMutex;
 
-		Impl(std::string endpoint, std::string authKey)
+		Impl(std::string endpoint, std::string authKey, std::string secretKey, IdentityScope identityScope)
 			: endpoint(endpoint)
-			, authKey(authKey)
+            , authKey(authKey)
+            , identityScope(identityScope)
 			, httpClient(endpoint.c_str())
 		{
-			if (endpoint.rfind("https") != 0)
+            macaron::Base64::Decode(secretKey, this->secretKey);
+
+			if (endpoint.find("https") != 0)
 			{
 				// TODO: non-https endpoint warning
 			}
@@ -66,8 +72,8 @@ namespace uid2
 		std::shared_ptr<KeyContainer> GetKeyContainer() const;
 	};
 
-	UID2Client::UID2Client(std::string endpoint, std::string authKey)
-		: mImpl(new Impl(endpoint, authKey))
+	UID2Client::UID2Client(std::string endpoint, std::string authKey, std::string secretKey, IdentityScope identityScope)
+		: mImpl(new Impl(endpoint, authKey, secretKey, identityScope))
 	{
 	}
 
@@ -102,14 +108,14 @@ namespace uid2
 			return DecryptionResult::MakeError(DecryptionStatus::KEYS_NOT_SYNCED);
 		}
 
-		return DecryptToken(token, *activeContainer, now, /*checkValidity*/true);
+		return DecryptToken(token, *activeContainer, now, mImpl->identityScope, /*checkValidity*/true);
 	}
 
 	EncryptionDataResult UID2Client::EncryptData(const EncryptionDataRequest& req)
 	{
 		// hold reference to container so it's not disposed by refresh
 		const auto activeContainer = mImpl->GetKeyContainer();
-		return uid2::EncryptData(req, activeContainer.get());
+		return uid2::EncryptData(req, activeContainer.get(), mImpl->identityScope);
 	}
 
 	DecryptionDataResult UID2Client::DecryptData(const std::string& encryptedData)
@@ -129,7 +135,7 @@ namespace uid2
 		{
 			std::vector<std::uint8_t> encryptedBytes;
 			macaron::Base64::Decode(encryptedData, encryptedBytes);
-			return uid2::DecryptData(encryptedBytes, *activeContainer);
+			return uid2::DecryptData(encryptedBytes, *activeContainer, mImpl->identityScope);
 		}
 		catch (...)
 		{
@@ -152,13 +158,50 @@ namespace uid2
 		httpClient.stop();
 	}
 
+    static const int V2_NONCE_LEN = 8;
+    static std::string MakeV2Request(const std::uint8_t* secret, Timestamp now, std::uint8_t* nonce)
+    {
+        std::uint8_t payload[16];
+        BigEndianByteWriter writer(payload, sizeof(payload));
+        writer.WriteInt64(now.GetEpochMilli());
+        RandomBytes(nonce, V2_NONCE_LEN);
+        writer.WriteBytes(nonce, 0, sizeof(nonce));
+
+        std::vector<std::uint8_t> envelope(64);
+        envelope[0] = 1;
+        const int envelopeLen = 1 + EncryptGCM(payload, writer.GetPosition(), secret, envelope.data() + 1);
+        envelope.resize(envelopeLen);
+
+        return macaron::Base64::Encode(envelope);
+    }
+    static std::string ParseV2Response(const std::string& envelope, const std::uint8_t* secret, const std::uint8_t* nonce)
+    {
+        std::vector<std::uint8_t> envelopeBytes;
+        macaron::Base64::Decode(envelope, envelopeBytes);
+        std::vector<std::uint8_t> payload(envelopeBytes.size());
+        const int payloadLen = DecryptGCM(envelopeBytes.data(), envelopeBytes.size(), secret, payload.data());
+        if (payloadLen < 16)
+        {
+            throw std::runtime_error("invalid payload");
+        }
+
+        if (0 != std::memcmp(nonce, payload.data() + 8, V2_NONCE_LEN))
+        {
+            throw std::runtime_error("nonce mismatch");
+        }
+
+        return {(const char*)payload.data() + 16, std::size_t(payloadLen - 16)};
+    }
+
 	std::string UID2Client::Impl::GetLatestKeys(std::string& out_err)
 	{
-		if (auto res = httpClient.Get("/v1/key/latest"))
+        std::uint8_t nonce[V2_NONCE_LEN];
+        const auto request = MakeV2Request(secretKey.data(), Timestamp::Now(), nonce);
+		if (auto res = httpClient.Post("/v2/key/latest", request, "text/plain"))
 		{
 			if (res->status >= 200 || res->status < 300)
 			{
-				return res->body;
+				return ParseV2Response(res->body, secretKey.data(), nonce);
 			}
 			else
 			{

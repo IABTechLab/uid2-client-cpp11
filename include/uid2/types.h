@@ -33,6 +33,18 @@ namespace uid2
 {
 	struct Key;
 
+    enum class IdentityScope
+    {
+        UID2 = 0,
+        EUID = 1,
+    };
+
+    enum class IdentityType
+    {
+        Email = 0,
+        Phone = 1,
+    };
+
 	enum class DecryptionStatus
 	{
 		SUCCESS,
@@ -43,6 +55,7 @@ namespace uid2
 		KEYS_NOT_SYNCED,
 		VERSION_NOT_SUPPORTED,
 		INVALID_PAYLOAD_TYPE,
+        INVALID_IDENTITY_SCOPE,
 	};
 
 	enum class EncryptionStatus
@@ -84,6 +97,10 @@ namespace uid2
 		{
 			return DecryptionResult(status, std::string(), Timestamp(), -1);
 		}
+        static DecryptionResult MakeError(DecryptionStatus status, Timestamp established, int siteId)
+        {
+            return DecryptionResult(status, std::string(), established, siteId);
+        }
 
 		bool IsSuccess() const { return Status == DecryptionStatus::SUCCESS; }
 		DecryptionStatus GetStatus() const { return Status; }

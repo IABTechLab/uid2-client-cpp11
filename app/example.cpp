@@ -35,11 +35,11 @@ static void StartExample(const std::string& desc)
 	std::cout.flush();
 }
 
-static void ExampleBasic(const std::string& baseUrl, const std::string& apiKey, const std::string adToken)
+static void ExampleBasic(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string adToken)
 {
 	StartExample("Basic keys refresh and decrypt token");
 
-	const auto client = UID2ClientFactory::Create(baseUrl, apiKey);
+	const auto client = UID2ClientFactory::Create(baseUrl, apiKey, secretKey);
 	const auto refreshResult = client->Refresh();
 	if (!refreshResult.IsSuccess())
 	{
@@ -51,13 +51,14 @@ static void ExampleBasic(const std::string& baseUrl, const std::string& apiKey, 
 	std::cout << "DecryptedSuccess=" << result.IsSuccess() << " Status=" << (int)result.GetStatus() << "\n";
 	std::cout << "UID=" << result.GetUid() << "\n";
 	std::cout << "EstablishedAt=" << result.GetEstablished().GetEpochSecond() << "\n";
+    std::cout << "SiteId=" << result.GetSiteId() << "\n";
 }
 
-static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& apiKey, const std::string adToken)
+static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string adToken)
 {
 	StartExample("Automatic background keys refresh");
 
-	const auto client = UID2ClientFactory::Create(baseUrl, apiKey);
+	const auto client = UID2ClientFactory::Create(baseUrl, apiKey, secretKey);
 	std::thread refreshThread([&]
 		{
 			for(int i = 0; i < 8; ++i)
@@ -80,11 +81,11 @@ static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& ap
 	refreshThread.join();
 }
 
-static void ExampleEncryptDecryptData(const std::string& baseUrl, const std::string& apiKey, const std::string adToken)
+static void ExampleEncryptDecryptData(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string adToken)
 {
 	StartExample("Encrypt and Decrypt Data");
 
-	const auto client = UID2ClientFactory::Create(baseUrl, apiKey);
+	const auto client = UID2ClientFactory::Create(baseUrl, apiKey, secretKey);
 	const auto refreshResult = client->Refresh();
 	if (!refreshResult.IsSuccess())
 	{
@@ -119,19 +120,20 @@ static void ExampleEncryptDecryptData(const std::string& baseUrl, const std::str
 
 int main(int argc, char** argv)
 {
-	if(argc < 4)
+	if(argc < 5)
 	{
-		std::cerr << "Usage: example <base-url> <api-key> <ad-token>" << std::endl;
+		std::cerr << "Usage: example <base-url> <api-key> <secret-key> <ad-token>" << std::endl;
 		return 1;
 	}
 
 	const std::string baseUrl = argv[1];
 	const std::string apiKey = argv[2];
-	const std::string adToken = argv[3];
+    const std::string secretKey = argv[3];
+	const std::string adToken = argv[4];
 
-	ExampleBasic(baseUrl, apiKey, adToken);
-	ExampleAutoRefresh(baseUrl, apiKey, adToken);
-	ExampleEncryptDecryptData(baseUrl, apiKey, adToken);
+	ExampleBasic(baseUrl, apiKey, secretKey, adToken);
+	ExampleAutoRefresh(baseUrl, apiKey, secretKey, adToken);
+	ExampleEncryptDecryptData(baseUrl, apiKey, secretKey, adToken);
 
 	return 0;
 }
