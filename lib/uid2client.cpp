@@ -30,6 +30,7 @@
 #include "keyparser.h"
 #include "uid2encryption.h"
 
+#include <cstdlib>
 #include <functional>
 #include <mutex>
 
@@ -57,6 +58,12 @@ namespace uid2
 			if (endpoint.find("https") != 0)
 			{
 				// TODO: non-https endpoint warning
+			}
+
+			const auto* caPathOverride = std::getenv("UID2_CA_CERT_PATH");
+			if (caPathOverride != nullptr)
+			{
+				httpClient.set_ca_cert_path(caPathOverride);
 			}
 
 			httpClient.set_default_headers({

@@ -53,6 +53,13 @@ Use `UID2ClientFactory::Create` to create a uid2 client instance.
 
 Also see `app/example.cpp`.
 
+## HTTPS
+
+If you encounter "unable to get local issuer certificate" running the example:
+
+- Make sure you have CA bundle installed (For ubuntu: apt-get install ca-certificates)
+- Override CApath by setting envrionment variable: `UID2_CA_CERT_PATH=/etc/ssl/certs/ca-certificates.crt`, for example
+
 ## License
 
 ```
