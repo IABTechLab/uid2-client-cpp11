@@ -144,10 +144,10 @@ namespace uid2
 
         if (checkValidity && expires < now)
         {
-            return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId);
+            return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId, siteKey->siteId);
         }
 
-        return DecryptionResult::MakeSuccess(std::move(idString), established, siteId);
+        return DecryptionResult::MakeSuccess(std::move(idString), established, siteId, siteKey->siteId);
 	}
 
     static DecryptionResult DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer& keys, Timestamp now, IdentityScope identityScope, bool checkValidity)
@@ -212,13 +212,13 @@ namespace uid2
 
         if (checkValidity && expires < now)
         {
-            return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId);
+            return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId, siteKey->siteId);
         }
 
         const std::vector<std::uint8_t> identityBytes(sitePayloadReader.GetCurrentData(), sitePayloadReader.GetCurrentData() + sitePayloadReader.GetRemainingSize());
         auto idString = macaron::Base64::Encode(identityBytes);
 
-        return DecryptionResult::MakeSuccess(std::move(idString), established, siteId);
+        return DecryptionResult::MakeSuccess(std::move(idString), established, siteId, siteKey->siteId);
     }
 
     EncryptionDataResult EncryptData(const EncryptionDataRequest& req, const KeyContainer* keys, IdentityScope identityScope)
@@ -230,6 +230,7 @@ namespace uid2
 		int siteId = -1;
 		if (key == nullptr)
 		{
+            int siteKeySiteId = -1;
 			if (keys == nullptr)
 			{
 				return EncryptionDataResult::MakeError(EncryptionStatus::NOT_INITIALIZED);
@@ -245,6 +246,7 @@ namespace uid2
 			else if (req.GetSiteId() > 0)
 			{
 				siteId = req.GetSiteId();
+                siteKeySiteId = siteId;
 			}
 			else
 			{
@@ -254,9 +256,10 @@ namespace uid2
 					return EncryptionDataResult::MakeError(EncryptionStatus::TOKEN_DECRYPT_FAILURE);
 				}
 				siteId = decryptedToken.GetSiteId();
+                siteKeySiteId = decryptedToken.GetSiteKeySiteId();
 			}
 
-			key = keys->GetActiveSiteKey(siteId, now);
+			key = keys->GetActiveSiteKey(siteKeySiteId, now);
 			if (key == nullptr)
 			{
 				return EncryptionDataResult::MakeError(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY);

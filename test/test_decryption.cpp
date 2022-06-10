@@ -43,6 +43,7 @@ static std::vector<std::uint8_t> Base64Decode(const std::string& str);
 static const std::int64_t MASTER_KEY_ID = 164;
 static const std::int64_t SITE_KEY_ID = 165;
 static const int SITE_ID = 9000;
+static const int SITE_ID2 = 2;
 static const std::uint8_t MASTER_SECRET[] = { 139, 37, 241, 173, 18, 92, 36, 232, 165, 168, 23, 18, 38, 195, 123, 92, 160, 136, 185, 40, 91, 173, 165, 221, 168, 16, 169, 164, 38, 139, 8, 155 };
 static const std::uint8_t SITE_SECRET[] = { 32, 251, 7, 194, 132, 154, 250, 86, 202, 116, 104, 29, 131, 192, 139, 215, 48, 164, 11, 65, 226, 110, 167, 14, 108, 51, 254, 125, 65, 24, 23, 133 };
 static const Timestamp NOW = Timestamp::Now();
@@ -188,6 +189,20 @@ TEST(EncryptDataTests, SiteIdFromToken)
 	EXPECT_EQ(TO_VECTOR(data), decrypted.GetDecryptedData());
 }
 
+TEST(EncryptDataTests, SiteIdFromTokenCustomSiteKeySiteId)
+{
+    const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
+    const auto advertisingToken = EncryptTokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID2, SITE_KEY);
+    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithAdvertisingToken(advertisingToken));
+    EXPECT_EQ(EncryptionStatus::SUCCESS, encrypted.GetStatus());
+    const auto decrypted = client.DecryptData(encrypted.GetEncryptedData());
+    EXPECT_TRUE(decrypted.IsSuccess());
+    EXPECT_EQ(DecryptionStatus::SUCCESS, decrypted.GetStatus());
+    EXPECT_EQ(TO_VECTOR(data), decrypted.GetDecryptedData());
+}
+
 TEST(EncryptDataTests, SiteIdAndTokenSet)
 {
 	const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
@@ -253,6 +268,18 @@ TEST(EncryptDataTests, KeyExpired)
 	EXPECT_EQ(EncryptionStatus::KEY_INACTIVE, encrypted.GetStatus());
 }
 
+TEST(EncryptDataTests, TokenDecryptKeyExpired)
+{
+    const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    const Key key{SITE_KEY_ID, SITE_ID2, NOW, NOW, NOW.AddDays(-1), GetSiteSecret()};
+    client.RefreshJson(KeySetToJson({MASTER_KEY, key}));
+    const auto advertisingToken = EncryptTokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID, key);
+    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithAdvertisingToken(advertisingToken));
+    EXPECT_FALSE(encrypted.IsSuccess());
+    EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
+}
+
 TEST(EncryptDataTests, KeyInactive)
 {
 	const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
@@ -286,7 +313,7 @@ TEST(EncryptDataTests, NoSiteKey)
 	const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
-	const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(SITE_KEY.siteId+1));
+	const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(SITE_ID2));
 	EXPECT_FALSE(encrypted.IsSuccess());
 	EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
