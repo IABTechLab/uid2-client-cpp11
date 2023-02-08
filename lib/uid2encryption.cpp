@@ -25,6 +25,12 @@ namespace uid2
         ENCRYPTED_DATA_V3 = 96,
     };
 
+    enum class AdvertisingTokenType : std::uint8_t
+    {
+        ADVERTISING_TOKEN_V3 = 112,
+        ADVERTISING_TOKEN_V4 = 118,
+    };
+
     static const int GCM_AUTHTAG_LENGTH = 16;
     static const int GCM_IV_LENGTH = 12;
 
@@ -38,36 +44,45 @@ namespace uid2
 
     DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys, Timestamp now, IdentityScope identityScope, bool checkValidity)
 	{
+        std::string headerStr = token.substr(0, 4);
+        bool isBase64UrlEncoding = std::any_of(headerStr.begin(), headerStr.end(), [](char c){ return c == '-' || c == '_';});
 		try
 		{
-			std::vector<std::uint8_t> encodedId;
-			macaron::Base64::Decode(token, encodedId);
-			return DecryptToken(encodedId, keys, now, identityScope, checkValidity);
+            std::vector<std::uint8_t> encryptedId;
+            if(isBase64UrlEncoding)
+            {
+                macaron::Base64::DecodeBase64URL(token, encryptedId);
+            }
+            else
+            {
+                macaron::Base64::Decode(token, encryptedId);
+            }
+
+            if (encryptedId.size() < 2)
+            {
+                return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
+            }
+
+            if (encryptedId[0] == 2)
+            {
+                return DecryptTokenV2(encryptedId, keys, now, checkValidity);
+            }
+            else if (encryptedId[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V3)
+            {
+                return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
+            }
+            else if (encryptedId[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V4)
+            {
+                //same as V3 but use Base64URL encoding
+                return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
+            }
+            return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
 		}
 		catch (...)
 		{
 			return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
 		}
 	}
-
-	DecryptionResult DecryptToken(const std::vector<std::uint8_t>& encryptedId, const KeyContainer& keys, Timestamp now, IdentityScope identityScope, bool checkValidity)
-    {
-        if (encryptedId.size() < 2)
-        {
-            return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
-        }
-
-        if (encryptedId[0] == 2)
-        {
-            return DecryptTokenV2(encryptedId, keys, now, checkValidity);
-        }
-        else if (encryptedId[1] == 112)
-        {
-            return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
-        }
-
-        return DecryptionResult::MakeError(DecryptionStatus::VERSION_NOT_SUPPORTED);
-    }
 
     static DecryptionResult DecryptTokenV2(const std::vector<std::uint8_t>& encryptedId, const KeyContainer& keys, Timestamp now, bool checkValidity)
     {
