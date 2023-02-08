@@ -49,31 +49,36 @@ namespace uid2
 		try
 		{
             std::vector<std::uint8_t> encryptedId;
+            std::vector<std::uint8_t> headerBytes;
+
             if(isBase64UrlEncoding)
             {
-                macaron::Base64::DecodeBase64URL(token, encryptedId);
+                macaron::Base64::DecodeBase64URL(headerStr, headerBytes);
             }
             else
             {
-                macaron::Base64::Decode(token, encryptedId);
+                macaron::Base64::Decode(headerStr, headerBytes);
             }
 
-            if (encryptedId.size() < 2)
+            if (headerBytes.size() < 2)
             {
                 return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
             }
 
-            if (encryptedId[0] == 2)
+            if (headerBytes[0] == 2)
             {
+                macaron::Base64::Decode(token, encryptedId);
                 return DecryptTokenV2(encryptedId, keys, now, checkValidity);
             }
-            else if (encryptedId[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V3)
+            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V3)
             {
+                macaron::Base64::Decode(token, encryptedId);
                 return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
             }
-            else if (encryptedId[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V4)
+            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V4)
             {
                 //same as V3 but use Base64URL encoding
+                macaron::Base64::DecodeBase64URL(token, encryptedId);
                 return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
             }
             return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
