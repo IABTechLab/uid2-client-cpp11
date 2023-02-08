@@ -17,6 +17,6 @@ struct EncryptTokenParams
 };
 
 std::string EncryptTokenV2(const std::string& identity, const uid2::Key& masterKey, int siteId, const uid2::Key& siteKey, EncryptTokenParams params = EncryptTokenParams());
-std::string EncryptTokenV3(const std::string& identity, const uid2::Key& masterKey, int siteId, const uid2::Key& siteKey, EncryptTokenParams params = EncryptTokenParams());
+std::string GenerateUID2TokenWithDebugInfo(const std::string& identity, const uid2::Key& masterKey, int siteId, const uid2::Key& siteKey, EncryptTokenParams params = EncryptTokenParams(), bool v4Token = true);
 
 std::string EncryptDataV2(const std::vector<std::uint8_t>& data, const uid2::Key& key, int siteId, uid2::Timestamp now);
