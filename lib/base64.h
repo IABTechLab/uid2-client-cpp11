@@ -94,17 +94,17 @@ namespace macaron {
 
     class Base64 {
     private:
-        static std::string Encode(const std::vector<uint8_t>& data, const char* sEncodingTable) {
+        static std::string Encode(const std::vector<uint8_t>& data, const char* sEncodingTable, bool url) {
             size_t in_len = data.size();
             size_t out_len = 4 * ((in_len + 2) / 3);
             std::string ret(out_len, '\0');
             size_t i;
-            char* p = const_cast<char*>(ret.c_str());
+            char *p = const_cast<char *>(ret.c_str());
 
             for (i = 0; i < in_len - 2; i += 3) {
                 *p++ = sEncodingTable[(data[i] >> 2) & 0x3F];
-                *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
-                *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2) | ((int)(data[i + 2] & 0xC0) >> 6)];
+                *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int) (data[i + 1] & 0xF0) >> 4)];
+                *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2) | ((int) (data[i + 2] & 0xC0) >> 6)];
                 *p++ = sEncodingTable[data[i + 2] & 0x3F];
             }
             if (i < in_len) {
@@ -112,12 +112,25 @@ namespace macaron {
                 if (i == (in_len - 1)) {
                     *p++ = sEncodingTable[((data[i] & 0x3) << 4)];
                     *p++ = '=';
-                }
-                else {
-                    *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
+                } else {
+                    *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int) (data[i + 1] & 0xF0) >> 4)];
                     *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2)];
                 }
                 *p++ = '=';
+            }
+
+            //remove '=' as Base 64 URL doesn't require padding
+            //https://www.rfc-editor.org/rfc/rfc4648#section-5
+            //and '=' is a reserved char in URL spec
+            if (url)
+            {
+                for(int i =0; i < 3; i++)
+                {
+                    if(ret.at(ret.length() - 1) == '=')
+                    {
+                        ret.pop_back();
+                    }
+                }
             }
 
             return ret;
@@ -125,7 +138,6 @@ namespace macaron {
 
         static void Decode(const std::string& input, const unsigned char* kDecodingTable, std::vector<uint8_t>& out) {
             size_t in_len = input.size();
-            if (in_len % 4 != 0) throw "invalid base64 string length";
 
             size_t out_len = in_len / 4 * 3;
             if (input[in_len - 1] == '=') out_len--;
@@ -150,18 +162,35 @@ namespace macaron {
     public:
 
         static std::string Encode(const std::vector<uint8_t>& data) {
-            return Encode(data, base64EncodingTable);
+            return Encode(data, base64EncodingTable, false);
         }
 
         static std::string EncodeBase64URL(const std::vector<uint8_t>& data) {
-            return Encode(data, base64URLEncodingTable);
+            return Encode(data, base64URLEncodingTable, true);
         }
 
         static void Decode(const std::string& input, std::vector<uint8_t>& out) {
+            if (input.size() % 4 != 0)
+            {
+                throw "invalid base64 string length";
+            }
             return Decode(input, base64DecodingTable, out);
         }
 
         static void DecodeBase64URL(const std::string& input, std::vector<uint8_t>& out) {
+            int inputSizeMod4 = input.size() % 4;
+            //it's within spec https://www.rfc-editor.org/rfc/rfc4648#section-5
+            if(inputSizeMod4 != 0)
+            {
+                std::string input2(input);
+                //just adds some padding back and the rest of the decoding should work
+                int paddings = 4 - inputSizeMod4;
+                for (int i = 0; i < paddings; i++)
+                {
+                    input2.push_back('=');
+                }
+                return Decode(input2, base64URLDecodingTable, out);
+            }
             return Decode(input, base64URLDecodingTable, out);
         }
 
