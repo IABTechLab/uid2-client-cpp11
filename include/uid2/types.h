@@ -22,6 +22,12 @@ namespace uid2
         Phone = 1,
     };
 
+    enum class AdvertisingTokenVersion
+    {
+        V3 = 112,
+        V4 = 128
+    };
+
 	enum class DecryptionStatus
 	{
 		SUCCESS,

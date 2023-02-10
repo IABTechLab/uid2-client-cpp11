@@ -3,6 +3,7 @@
 #include "base64.h"
 #include "key.h"
 #include "keygen.h"
+#include "bigendianprocessor.h"
 
 #include <gtest/gtest.h>
 
@@ -28,6 +29,33 @@ static const Key MASTER_KEY{MASTER_KEY_ID, -1, NOW.AddDays(-1), NOW, NOW.AddDays
 static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, NOW.AddDays(-10), NOW.AddDays(-9), NOW.AddDays(1), GetSiteSecret()};
 static const std::string EXAMPLE_UID = "ywsvDNINiZOVSsfkHpLpSJzXzhr6Jx9Z/4Q0+lsEUvM=";
 static const std::string CLIENT_SECRET = "ioG3wKxAokmp+rERx6A4kM/13qhyolUXIu14WN16Spo=";
+
+// unit tests to ensure the base64url encoding and decoding are identical in all supported
+// uid2 client sdks in different programming languages
+TEST(CrossPlatformConsistencyCheck, Base64UrlTest)
+{
+    std::uint8_t rawInput[] = { 0xff, 0xE0, 0x88, 0xFF, 0xEE, 0x99, 0x99 };
+    int rawInputLen = sizeof(rawInput)/sizeof(std::uint8_t);
+    //the Base64 equivalent is "/+CI/+6ZmQ=="
+    //and we want the Base64URL encoded to remove the '=' padding
+    std::string expectedBase64URLStr = "_-CI_-6ZmQ";
+    std::vector<std::uint8_t> payload(rawInputLen);
+    BigEndianByteWriter writer(payload.data(), payload.size());
+    for (int i = 0; i < rawInputLen; i++)
+    {
+        writer.WriteByte(rawInput[i]);
+    }
+    std::string base64UrlEncodedStr = macaron::Base64::EncodeBase64URL(payload);
+    EXPECT_EQ(expectedBase64URLStr, base64UrlEncodedStr);
+
+    std::vector<std::uint8_t> decoded;
+    macaron::Base64::DecodeBase64URL(base64UrlEncodedStr, decoded);
+    EXPECT_EQ(rawInputLen, decoded.size());
+    for (int i = 0; i < decoded.size(); i++)
+    {
+        EXPECT_EQ(rawInput[i], decoded[i]);
+    }
+}
 
 TEST(DecryptionTestsV4, SmokeTest)
 {
