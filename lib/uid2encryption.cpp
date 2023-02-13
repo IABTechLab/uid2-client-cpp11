@@ -38,6 +38,11 @@ namespace uid2
 
     DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys, Timestamp now, IdentityScope identityScope, bool checkValidity)
 	{
+        if(token.size() < 4)
+        {
+            return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
+        }
+
         std::string headerStr = token.substr(0, 4);
         bool isBase64UrlEncoding = std::any_of(headerStr.begin(), headerStr.end(), [](char c){ return c == '-' || c == '_';});
 		try
