@@ -2,7 +2,7 @@
 #include "uid2base64urlcoder.h"
 #include "base64.h"
 #include "key.h"
-#include "keygen.h"
+#include "uid2_token_generator.h"
 #include "bigendianprocessor.h"
 
 #include <gtest/gtest.h>
@@ -74,7 +74,7 @@ void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>
     }
 }
 
-TEST(DecryptionTestsV4, SmokeTest)
+TEST(EncryptionTestsV4, SmokeTest)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
@@ -85,7 +85,7 @@ TEST(DecryptionTestsV4, SmokeTest)
 	EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
-TEST(DecryptionTestsV4, EmptyKeyContainer)
+TEST(EncryptionTestsV4, EmptyKeyContainer)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV4(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
@@ -94,7 +94,7 @@ TEST(DecryptionTestsV4, EmptyKeyContainer)
 	EXPECT_EQ(DecryptionStatus::NOT_INITIALIZED, res.GetStatus());
 }
 
-TEST(DecryptionTestsV4, ExpiredKeyContainer)
+TEST(EncryptionTestsV4, ExpiredKeyContainer)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV4(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
@@ -108,7 +108,7 @@ TEST(DecryptionTestsV4, ExpiredKeyContainer)
 	EXPECT_EQ(DecryptionStatus::KEYS_NOT_SYNCED, res.GetStatus());
 }
 
-TEST(DecryptionTestsV4, NotAuthorizedForKey)
+TEST(EncryptionTestsV4, NotAuthorizedForKey)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV4(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
@@ -122,7 +122,7 @@ TEST(DecryptionTestsV4, NotAuthorizedForKey)
 	EXPECT_EQ(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY, res.GetStatus());
 }
 
-TEST(DecryptionTestsV4, InvalidPayload)
+TEST(EncryptionTestsV4, InvalidPayload)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	std::vector<uint8_t> payload;
@@ -133,7 +133,7 @@ TEST(DecryptionTestsV4, InvalidPayload)
     EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken, NOW).GetStatus());
 }
 
-TEST(DecryptionTestsV4, TokenExpiryAndCustomNow)
+TEST(EncryptionTestsV4, TokenExpiryAndCustomNow)
 {
 	const Timestamp expiry = NOW.AddDays(-6);
 	const auto params = EncryptTokenParams().WithTokenExpiry(expiry);

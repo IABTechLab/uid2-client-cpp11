@@ -2,7 +2,7 @@
 
 #include "base64.h"
 #include "key.h"
-#include "keygen.h"
+#include "uid2_token_generator.h"
 
 #include <gtest/gtest.h>
 
@@ -29,7 +29,7 @@ static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, NOW.AddDays(-10), NOW.AddDays(-9
 static const std::string EXAMPLE_UID = "ywsvDNINiZOVSsfkHpLpSJzXzhr6Jx9Z/4Q0+lsEUvM=";
 static const std::string CLIENT_SECRET = "ioG3wKxAokmp+rERx6A4kM/13qhyolUXIu14WN16Spo=";
 
-TEST(DecryptionTestsV3, SmokeTest)
+TEST(EncryptionTestsV3, SmokeTest)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
@@ -40,7 +40,7 @@ TEST(DecryptionTestsV3, SmokeTest)
 	EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
-TEST(DecryptionTestsV3, EmptyKeyContainer)
+TEST(EncryptionTestsV3, EmptyKeyContainer)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
@@ -49,7 +49,7 @@ TEST(DecryptionTestsV3, EmptyKeyContainer)
 	EXPECT_EQ(DecryptionStatus::NOT_INITIALIZED, res.GetStatus());
 }
 
-TEST(DecryptionTestsV3, ExpiredKeyContainer)
+TEST(EncryptionTestsV3, ExpiredKeyContainer)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
@@ -63,7 +63,7 @@ TEST(DecryptionTestsV3, ExpiredKeyContainer)
 	EXPECT_EQ(DecryptionStatus::KEYS_NOT_SYNCED, res.GetStatus());
 }
 
-TEST(DecryptionTestsV3, NotAuthorizedForKey)
+TEST(EncryptionTestsV3, NotAuthorizedForKey)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
@@ -77,7 +77,7 @@ TEST(DecryptionTestsV3, NotAuthorizedForKey)
 	EXPECT_EQ(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY, res.GetStatus());
 }
 
-TEST(DecryptionTestsV3, InvalidPayload)
+TEST(EncryptionTestsV3, InvalidPayload)
 {
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
@@ -87,7 +87,7 @@ TEST(DecryptionTestsV3, InvalidPayload)
 	EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, 4), NOW).GetStatus());
 }
 
-TEST(DecryptionTestsV3, TokenExpiryAndCustomNow)
+TEST(EncryptionTestsV3, TokenExpiryAndCustomNow)
 {
 	const Timestamp expiry = NOW.AddDays(-6);
 	const auto params = EncryptTokenParams().WithTokenExpiry(expiry);
