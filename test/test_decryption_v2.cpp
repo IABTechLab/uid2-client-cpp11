@@ -31,7 +31,7 @@ TEST(DecryptionTestsV2, SmokeTest)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
-    const auto advertisingToken = EncryptTokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
+    const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
     const auto res = client.Decrypt(advertisingToken, Timestamp::Now());
     EXPECT_TRUE(res.IsSuccess());
     EXPECT_EQ(DecryptionStatus::SUCCESS, res.GetStatus());
@@ -41,7 +41,7 @@ TEST(DecryptionTestsV2, SmokeTest)
 TEST(DecryptionTestsV2, EmptyKeyContainer)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-    const auto advertisingToken = EncryptTokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
+    const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
     const auto res = client.Decrypt(advertisingToken, Timestamp::Now());
     EXPECT_FALSE(res.IsSuccess());
     EXPECT_EQ(DecryptionStatus::NOT_INITIALIZED, res.GetStatus());
@@ -50,7 +50,7 @@ TEST(DecryptionTestsV2, EmptyKeyContainer)
 TEST(DecryptionTestsV2, ExpiredKeyContainer)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-    const auto advertisingToken = EncryptTokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
+    const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
 
     const Key masterKeyExpired{MASTER_KEY_ID, -1, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetMasterSecret()};
     const Key siteKeyExpired{SITE_KEY_ID, SITE_ID, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetSiteSecret()};
@@ -64,7 +64,7 @@ TEST(DecryptionTestsV2, ExpiredKeyContainer)
 TEST(DecryptionTestsV2, NotAuthorizedForKey)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-    const auto advertisingToken = EncryptTokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
+    const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
 
     const Key anotherMasterKey{MASTER_KEY_ID + SITE_KEY_ID + 1, -1, NOW, NOW, NOW.AddDays(1), GetMasterSecret()};
     const Key anotherSiteKey{MASTER_KEY_ID + SITE_KEY_ID + 2, SITE_ID, NOW, NOW, NOW.AddDays(1), GetSiteSecret()};
@@ -79,7 +79,7 @@ TEST(DecryptionTestsV2, InvalidPayload)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
-    const auto advertisingToken = EncryptTokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
+    const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
     EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, advertisingToken.size()-1), NOW).GetStatus());
     EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, advertisingToken.size()-4), NOW).GetStatus());
     EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, 4), NOW).GetStatus());
@@ -92,7 +92,7 @@ TEST(DecryptionTestsV2, TokenExpiryAndCustomNow)
 
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
-    const auto advertisingToken = EncryptTokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, params);
+    const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, params);
 
     auto res = client.Decrypt(advertisingToken, expiry.AddSeconds(1));
     EXPECT_FALSE(res.IsSuccess());

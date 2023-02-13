@@ -64,12 +64,12 @@ namespace uid2
                 macaron::Base64::Decode(token, encryptedId);
                 return DecryptTokenV2(encryptedId, keys, now, checkValidity);
             }
-            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V3)
+            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenVersion::V3)
             {
                 macaron::Base64::Decode(token, encryptedId);
                 return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
             }
-            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V4)
+            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenVersion::V4)
             {
                 //same as V3 but use Base64URL encoding
                 uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
