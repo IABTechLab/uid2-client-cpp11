@@ -1,5 +1,5 @@
 #include <uid2/uid2client.h>
-
+#include "uid2base64urlcoder.h"
 #include "base64.h"
 #include "key.h"
 #include "keygen.h"
@@ -30,26 +30,43 @@ static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, NOW.AddDays(-10), NOW.AddDays(-9
 static const std::string EXAMPLE_UID = "ywsvDNINiZOVSsfkHpLpSJzXzhr6Jx9Z/4Q0+lsEUvM=";
 static const std::string CLIENT_SECRET = "ioG3wKxAokmp+rERx6A4kM/13qhyolUXIu14WN16Spo=";
 
+void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>& rawInput, const std::string& expectedBase64URLStr);
+
 // unit tests to ensure the base64url encoding and decoding are identical in all supported
 // uid2 client sdks in different programming languages
 TEST(CrossPlatformConsistencyCheck, Base64UrlTest)
 {
-    std::uint8_t rawInput[] = { 0xff, 0xE0, 0x88, 0xFF, 0xEE, 0x99, 0x99 };
-    int rawInputLen = sizeof(rawInput)/sizeof(std::uint8_t);
+    //the Base64 equivalent is "/+CI/+6ZmQ=="
+    //and we want the Base64URL encoded to remove 2 '=' paddings at the back
+    std::vector<std::uint8_t> case1 = { 0xff, 0xE0, 0x88, 0xFF, 0xEE, 0x99, 0x99 };
+    crossPlatformConsistencyCheck_Base64UrlTest(case1, "_-CI_-6ZmQ");
+
+    //the Base64 equivalent is "/+CI/+6ZmZk=" to remove 1 padding
+    std::vector<std::uint8_t> case2 = { 0xff, 0xE0, 0x88, 0xFF, 0xEE, 0x99, 0x99, 0x99};
+    crossPlatformConsistencyCheck_Base64UrlTest(case2, "_-CI_-6ZmZk");
+
+    //the Base64 equivalent is "/+CI/+6Z" which requires no padding removal
+    std::vector<std::uint8_t> case3 = { 0xff, 0xE0, 0x88, 0xFF, 0xEE, 0x99};
+    crossPlatformConsistencyCheck_Base64UrlTest(case3, "_-CI_-6Z");
+
+}
+
+void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>& rawInput, const std::string& expectedBase64URLStr)
+{
+    int rawInputLen = rawInput.size();
     //the Base64 equivalent is "/+CI/+6ZmQ=="
     //and we want the Base64URL encoded to remove the '=' padding
-    std::string expectedBase64URLStr = "_-CI_-6ZmQ";
     std::vector<std::uint8_t> payload(rawInputLen);
     BigEndianByteWriter writer(payload.data(), payload.size());
     for (int i = 0; i < rawInputLen; i++)
     {
         writer.WriteByte(rawInput[i]);
     }
-    std::string base64UrlEncodedStr = macaron::Base64::EncodeBase64URL(payload);
+    std::string base64UrlEncodedStr = uid2::UID2Base64UrlCoder::Encode(payload);
     EXPECT_EQ(expectedBase64URLStr, base64UrlEncodedStr);
 
     std::vector<std::uint8_t> decoded;
-    macaron::Base64::DecodeBase64URL(base64UrlEncodedStr, decoded);
+    uid2::UID2Base64UrlCoder::Decode(base64UrlEncodedStr, decoded);
     EXPECT_EQ(rawInputLen, decoded.size());
     for (int i = 0; i < decoded.size(); i++)
     {

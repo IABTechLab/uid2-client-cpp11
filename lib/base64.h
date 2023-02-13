@@ -94,7 +94,7 @@ namespace macaron {
 
     class Base64 {
     private:
-        static std::string Encode(const std::vector<uint8_t>& data, const char* sEncodingTable, bool url) {
+        static std::string Encode(const std::vector<uint8_t>& data, const char* sEncodingTable) {
             size_t in_len = data.size();
             size_t out_len = 4 * ((in_len + 2) / 3);
             std::string ret(out_len, '\0');
@@ -117,20 +117,6 @@ namespace macaron {
                     *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2)];
                 }
                 *p++ = '=';
-            }
-
-            //remove '=' as Base 64 URL doesn't require padding
-            //https://www.rfc-editor.org/rfc/rfc4648#section-5
-            //and '=' is a reserved char in URL spec
-            if (url)
-            {
-                for(int i =0; i < 3; i++)
-                {
-                    if(ret.at(ret.length() - 1) == '=')
-                    {
-                        ret.pop_back();
-                    }
-                }
             }
 
             return ret;
@@ -162,11 +148,22 @@ namespace macaron {
     public:
 
         static std::string Encode(const std::vector<uint8_t>& data) {
-            return Encode(data, base64EncodingTable, false);
+            return Encode(data, base64EncodingTable);
         }
 
         static std::string EncodeBase64URL(const std::vector<uint8_t>& data) {
-            return Encode(data, base64URLEncodingTable, true);
+            auto ret = Encode(data, base64URLEncodingTable);
+            //remove '=' as Base 64 URL doesn't require padding
+            //https://www.rfc-editor.org/rfc/rfc4648#section-5
+            //and '=' is a reserved char in URL spec
+            for(int i =0; i < 3; i++)
+            {
+                if(ret.at(ret.length() - 1) == '=')
+                {
+                    ret.pop_back();
+                }
+            }
+            return ret;
         }
 
         static void Decode(const std::string& input, std::vector<uint8_t>& out) {

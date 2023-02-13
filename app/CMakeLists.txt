@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.12)
 
-add_executable (example "example.cpp")
+add_executable (example "example.cpp" ../lib/uid2base64urlcoder.h)
 
 find_package(Threads REQUIRED)
 

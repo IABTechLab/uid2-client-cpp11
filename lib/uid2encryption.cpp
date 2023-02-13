@@ -3,7 +3,7 @@
 #include "aes.h"
 #include "base64.h"
 #include "bigendianprocessor.h"
-
+#include "uid2base64urlcoder.h"
 #include <memory>
 #include <stdexcept>
 #include <unordered_map>
@@ -47,7 +47,7 @@ namespace uid2
 
             if(isBase64UrlEncoding)
             {
-                macaron::Base64::DecodeBase64URL(headerStr, headerBytes);
+                uid2::UID2Base64UrlCoder::Decode(headerStr, headerBytes);
             }
             else
             {
@@ -72,7 +72,7 @@ namespace uid2
             else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenType::ADVERTISING_TOKEN_V4)
             {
                 //same as V3 but use Base64URL encoding
-                macaron::Base64::DecodeBase64URL(token, encryptedId);
+                uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
                 return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
             }
             return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
