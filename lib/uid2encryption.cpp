@@ -3,7 +3,7 @@
 #include "aes.h"
 #include "base64.h"
 #include "bigendianprocessor.h"
-
+#include "uid2base64urlcoder.h"
 #include <memory>
 #include <stdexcept>
 #include <unordered_map>
@@ -38,36 +38,55 @@ namespace uid2
 
     DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys, Timestamp now, IdentityScope identityScope, bool checkValidity)
 	{
+        if(token.size() < 4)
+        {
+            return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
+        }
+
+        std::string headerStr = token.substr(0, 4);
+        bool isBase64UrlEncoding = std::any_of(headerStr.begin(), headerStr.end(), [](char c){ return c == '-' || c == '_';});
 		try
 		{
-			std::vector<std::uint8_t> encodedId;
-			macaron::Base64::Decode(token, encodedId);
-			return DecryptToken(encodedId, keys, now, identityScope, checkValidity);
+            std::vector<std::uint8_t> encryptedId;
+            std::vector<std::uint8_t> headerBytes;
+
+            if(isBase64UrlEncoding)
+            {
+                uid2::UID2Base64UrlCoder::Decode(headerStr, headerBytes);
+            }
+            else
+            {
+                macaron::Base64::Decode(headerStr, headerBytes);
+            }
+
+            if (headerBytes.size() < 2)
+            {
+                return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
+            }
+
+            if (headerBytes[0] == 2)
+            {
+                macaron::Base64::Decode(token, encryptedId);
+                return DecryptTokenV2(encryptedId, keys, now, checkValidity);
+            }
+            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenVersion::V3)
+            {
+                macaron::Base64::Decode(token, encryptedId);
+                return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
+            }
+            else if (headerBytes[1] == (std::uint8_t) AdvertisingTokenVersion::V4)
+            {
+                //same as V3 but use Base64URL encoding
+                uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
+                return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
+            }
+            return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
 		}
 		catch (...)
 		{
 			return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
 		}
 	}
-
-	DecryptionResult DecryptToken(const std::vector<std::uint8_t>& encryptedId, const KeyContainer& keys, Timestamp now, IdentityScope identityScope, bool checkValidity)
-    {
-        if (encryptedId.size() < 2)
-        {
-            return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
-        }
-
-        if (encryptedId[0] == 2)
-        {
-            return DecryptTokenV2(encryptedId, keys, now, checkValidity);
-        }
-        else if (encryptedId[1] == 112)
-        {
-            return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
-        }
-
-        return DecryptionResult::MakeError(DecryptionStatus::VERSION_NOT_SUPPORTED);
-    }
 
     static DecryptionResult DecryptTokenV2(const std::vector<std::uint8_t>& encryptedId, const KeyContainer& keys, Timestamp now, bool checkValidity)
     {

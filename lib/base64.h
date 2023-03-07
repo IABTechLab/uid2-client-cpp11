@@ -32,31 +32,79 @@
 
 namespace macaron {
 
+    static constexpr char base64EncodingTable[] = {
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+            'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+            'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+            'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+            'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+            'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+            'w', 'x', 'y', 'z', '0', '1', '2', '3',
+            '4', '5', '6', '7', '8', '9', '+', '/'
+    };
+
+    static constexpr char base64URLEncodingTable[] = {
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+            'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+            'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+            'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+            'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+            'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+            'w', 'x', 'y', 'z', '0', '1', '2', '3',
+            '4', '5', '6', '7', '8', '9', '-', '_'
+    };
+
+    static constexpr unsigned char base64DecodingTable[] = {
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 64, 64, 63,
+            52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 64, 64, 64, 64, 64,
+            64,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+            15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 64, 64, 64, 64, 64,
+            64, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+            41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
+    };
+
+    static constexpr unsigned char base64URLDecodingTable[] = {
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 64,
+            52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 64, 64, 64, 64, 64,
+            64,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+            15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 64, 64, 64, 64, 63,
+            64, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+            41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+            64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
+    };
+
     class Base64 {
-    public:
-
-        static std::string Encode(const std::vector<uint8_t>& data) {
-            static constexpr char sEncodingTable[] = {
-              'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-              'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-              'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-              'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-              'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-              'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-              'w', 'x', 'y', 'z', '0', '1', '2', '3',
-              '4', '5', '6', '7', '8', '9', '+', '/'
-            };
-
+    private:
+        static std::string Encode(const std::vector<uint8_t>& data, const char* sEncodingTable) {
             size_t in_len = data.size();
             size_t out_len = 4 * ((in_len + 2) / 3);
             std::string ret(out_len, '\0');
             size_t i;
-            char* p = const_cast<char*>(ret.c_str());
+            char* p = &ret[0];
 
             for (i = 0; i < in_len - 2; i += 3) {
                 *p++ = sEncodingTable[(data[i] >> 2) & 0x3F];
-                *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
-                *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2) | ((int)(data[i + 2] & 0xC0) >> 6)];
+                *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int) (data[i + 1] & 0xF0) >> 4)];
+                *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2) | ((int) (data[i + 2] & 0xC0) >> 6)];
                 *p++ = sEncodingTable[data[i + 2] & 0x3F];
             }
             if (i < in_len) {
@@ -64,9 +112,8 @@ namespace macaron {
                 if (i == (in_len - 1)) {
                     *p++ = sEncodingTable[((data[i] & 0x3) << 4)];
                     *p++ = '=';
-                }
-                else {
-                    *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
+                } else {
+                    *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int) (data[i + 1] & 0xF0) >> 4)];
                     *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2)];
                 }
                 *p++ = '=';
@@ -75,28 +122,8 @@ namespace macaron {
             return ret;
         }
 
-        static void Decode(const std::string& input, std::vector<uint8_t>& out) {
-            static constexpr unsigned char kDecodingTable[] = {
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 64, 64, 63,
-              52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 64, 64, 64, 64, 64,
-              64,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-              15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 64, 64, 64, 64, 64,
-              64, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-              41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-              64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
-            };
-
+        static void Decode(const std::string& input, const unsigned char* kDecodingTable, std::vector<uint8_t>& out) {
             size_t in_len = input.size();
-            if (in_len % 4 != 0) throw "invalid base64 string length";
 
             size_t out_len = in_len / 4 * 3;
             if (input[in_len - 1] == '=') out_len--;
@@ -116,6 +143,52 @@ namespace macaron {
                 if (j < out_len) out[j++] = (triple >> 1 * 8) & 0xFF;
                 if (j < out_len) out[j++] = (triple >> 0 * 8) & 0xFF;
             }
+        }
+
+    public:
+
+        static std::string Encode(const std::vector<uint8_t>& data) {
+            return Encode(data, base64EncodingTable);
+        }
+
+        static std::string EncodeBase64URL(const std::vector<uint8_t>& data) {
+            auto ret = Encode(data, base64URLEncodingTable);
+            //remove '=' as Base 64 URL doesn't require padding
+            //https://www.rfc-editor.org/rfc/rfc4648#section-5
+            //and '=' is a reserved char in URL spec
+            for(int i =0; i < 3; i++)
+            {
+                if(ret.at(ret.length() - 1) == '=')
+                {
+                    ret.pop_back();
+                }
+            }
+            return ret;
+        }
+
+        static void Decode(const std::string& input, std::vector<uint8_t>& out) {
+            if (input.size() % 4 != 0)
+            {
+                throw "invalid base64 string length";
+            }
+            return Decode(input, base64DecodingTable, out);
+        }
+
+        static void DecodeBase64URL(const std::string& input, std::vector<uint8_t>& out) {
+            int inputSizeMod4 = input.size() % 4;
+            //it's within spec https://www.rfc-editor.org/rfc/rfc4648#section-5
+            if(inputSizeMod4 != 0)
+            {
+                std::string input2(input);
+                //just adds some padding back and the rest of the decoding should work
+                int paddings = 4 - inputSizeMod4;
+                for (int i = 0; i < paddings; i++)
+                {
+                    input2.push_back('=');
+                }
+                return Decode(input2, base64URLDecodingTable, out);
+            }
+            return Decode(input, base64URLDecodingTable, out);
         }
 
     };

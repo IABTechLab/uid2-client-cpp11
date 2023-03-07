@@ -1,9 +1,10 @@
-#include "keygen.h"
+#include "uid2_token_generator.h"
 
 #include "aes.h"
 #include "base64.h"
 #include "bigendianprocessor.h"
 #include "uid2encryption.h"
+#include "uid2base64urlcoder.h"
 
 #include <algorithm>
 #include <cstring>
@@ -29,7 +30,7 @@ static std::vector<std::uint8_t> EncryptImpl(std::vector<std::uint8_t>& data, co
 	return result;
 }
 
-std::string EncryptTokenV2(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params)
+std::string GenerateUid2TokenV2(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params)
 {
 	std::random_device rd;
 	std::vector<std::uint8_t> identityBuffer(4 + 4 + identity.size() + 4 + 8);
@@ -62,7 +63,17 @@ std::string EncryptTokenV2(const std::string& identity, const Key& masterKey, in
 	return macaron::Base64::Encode(rootBuffer);
 }
 
-std::string EncryptTokenV3(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params)
+std::string GenerateUid2TokenV3(const std::string& identity, const uid2::Key& masterKey, int siteId, const uid2::Key& siteKey, EncryptTokenParams params)
+{
+    return GenerateUID2TokenWithDebugInfo(identity, masterKey, siteId, siteKey, params, AdvertisingTokenVersion::V3);
+}
+
+std::string GenerateUid2TokenV4(const std::string& identity, const uid2::Key& masterKey, int siteId, const uid2::Key& siteKey, EncryptTokenParams params)
+{
+    return GenerateUID2TokenWithDebugInfo(identity, masterKey, siteId, siteKey, params, AdvertisingTokenVersion::V4);
+}
+
+std::string GenerateUID2TokenWithDebugInfo(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params, AdvertisingTokenVersion adTokenVersion)
 {
     std::uint8_t sitePayload[128];
     BigEndianByteWriter sitePayloadWriter(sitePayload, sizeof(sitePayload));
@@ -100,14 +111,17 @@ std::string EncryptTokenV3(const std::string& identity, const Key& masterKey, in
     BigEndianByteWriter writer(rootPayload);
 
     writer.WriteByte((((std::uint8_t)params.identityScope << 4) | ((std::uint8_t)params.identityType << 2)));
-    writer.WriteByte(112);
+    writer.WriteByte(static_cast<uint8_t>(adTokenVersion));
     writer.WriteInt32(masterKey.id);
 
     const auto rootPayloadLen = writer.GetPosition()
             + EncryptGCM(masterPayload, masterPayloadLen, masterKey.secret.data(), rootPayload.data() + writer.GetPosition());
     rootPayload.resize(rootPayloadLen);
 
-    return macaron::Base64::Encode(rootPayload);
+    if(adTokenVersion == AdvertisingTokenVersion::V4)
+        return uid2::UID2Base64UrlCoder::Encode(rootPayload);
+    else
+        return macaron::Base64::Encode(rootPayload);
 }
 
 std::string EncryptDataV2(const std::vector<std::uint8_t>& data, const uid2::Key& key, int siteId, uid2::Timestamp now)

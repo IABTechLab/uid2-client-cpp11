@@ -16,12 +16,6 @@ namespace uid2
 		Timestamp now,
         IdentityScope identityScope,
 		bool checkValidity);
-	DecryptionResult DecryptToken(
-		const std::vector<std::uint8_t>& encryptedId,
-		const KeyContainer& keys,
-		Timestamp now,
-        IdentityScope identityScope,
-		bool checkValidity);
 
 	EncryptionDataResult EncryptData(
 		const EncryptionDataRequest& req,
