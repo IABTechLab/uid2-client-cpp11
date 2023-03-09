@@ -73,7 +73,7 @@ std::string GenerateUid2TokenV4(const std::string& identity, const uid2::Key& ma
     return GenerateUID2TokenWithDebugInfo(identity, masterKey, siteId, siteKey, params, AdvertisingTokenVersion::V4);
 }
 
-std::string GenerateUID2TokenWithDebugInfo(const std::string& identity, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params, AdvertisingTokenVersion adTokenVersion)
+std::string GenerateUID2TokenWithDebugInfo(const std::string& uid, const Key& masterKey, int siteId, const Key& siteKey, EncryptTokenParams params, AdvertisingTokenVersion adTokenVersion)
 {
     std::uint8_t sitePayload[128];
     BigEndianByteWriter sitePayloadWriter(sitePayload, sizeof(sitePayload));
@@ -88,7 +88,7 @@ std::string GenerateUID2TokenWithDebugInfo(const std::string& identity, const Ke
     sitePayloadWriter.WriteInt64(Timestamp::Now().AddSeconds(-60).GetEpochMilli()); // established
     sitePayloadWriter.WriteInt64(Timestamp::Now().AddSeconds(-40).GetEpochMilli()); // refreshed
     std::vector<std::uint8_t> identityBytes;
-    macaron::Base64::Decode(identity, identityBytes);
+    macaron::Base64::Decode(uid, identityBytes);
     sitePayloadWriter.WriteBytes(identityBytes.data(), 0, identityBytes.size());
 
     std::uint8_t masterPayload[256];
@@ -110,7 +110,10 @@ std::string GenerateUID2TokenWithDebugInfo(const std::string& identity, const Ke
     std::vector<std::uint8_t> rootPayload(256);
     BigEndianByteWriter writer(rootPayload);
 
-    writer.WriteByte((((std::uint8_t)params.identityScope << 4) | ((std::uint8_t)params.identityType << 2)));
+    char firstChar = uid[0];
+    IdentityType identityType = (firstChar == 'F' || firstChar == 'B') ? IdentityType::Phone : IdentityType::Email; //see UID2-79+Token+and+ID+format+v3
+
+    writer.WriteByte((((std::uint8_t)params.identityScope << 4) | ((std::uint8_t)identityType << 2)));
     writer.WriteByte(static_cast<uint8_t>(adTokenVersion));
     writer.WriteInt32(masterKey.id);
 

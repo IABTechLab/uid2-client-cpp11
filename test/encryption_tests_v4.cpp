@@ -15,6 +15,7 @@ using namespace uid2;
 static std::vector<std::uint8_t> GetMasterSecret();
 static std::vector<std::uint8_t> GetSiteSecret();
 static std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v);
+static IdentityType GetTokenIdentityType(std::string rawUid, UID2Client& client);
 static std::string KeySetToJson(const std::vector<Key>& keys);
 static std::vector<std::uint8_t> Base64Decode(const std::string& str);
 
@@ -224,6 +225,33 @@ TEST(EncryptDataTestsV4, TokenExpired)
 	EXPECT_TRUE(decrypted.IsSuccess());
 	EXPECT_EQ(DecryptionStatus::SUCCESS, decrypted.GetStatus());
 	EXPECT_EQ(TO_VECTOR(data), decrypted.GetDecryptedData());
+}
+
+TEST(EncryptDataTestsV4, RawUidProducesCorrectIdentityTypeInToken)
+{
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
+
+    //see UID2-79+Token+and+ID+format+v3 . Also note EUID does not support v2 or phone
+    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("Q4bGug8t1xjsutKLCNjnb5fTlXSvIQukmahYDJeLBtk=", client)); //v2 +12345678901. Although this was generated from a phone number, it's a v2 raw UID which doesn't encode this information, so token assumes email by default.
+    EXPECT_EQ(IdentityType::Phone, GetTokenIdentityType("BEOGxroPLdcY7LrSiwjY52+X05V0ryELpJmoWAyXiwbZ", client)); //v3 +12345678901
+    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("oKg0ZY9ieD/CGMEjAA0kcq+8aUbLMBG0MgCT3kWUnJs=", client)); //v2 test@example.com
+    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("AKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client)); //v3 test@example.com
+    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("EKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client)); //v3 EUID test@example.com
+}
+
+IdentityType GetTokenIdentityType(std::string rawUid, UID2Client& client)
+{
+    auto token = GenerateUid2TokenV4(rawUid, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
+    EXPECT_EQ(rawUid, client.Decrypt(token, Timestamp::Now()).GetUid());
+
+    char firstChar = token[0];
+    if ('A' == firstChar || 'E' == firstChar) //from UID2-79+Token+and+ID+format+v3
+        return IdentityType::Email;
+    else if ('F' == firstChar || 'B' == firstChar)
+        return IdentityType::Phone;
+
+    throw "unknown IdentityType";
 }
 
 std::string KeySetToJson(const std::vector<Key>& keys)
