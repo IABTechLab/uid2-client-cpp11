@@ -217,6 +217,13 @@ namespace uid2
         return DecryptionResult::MakeSuccess(std::move(idString), established, siteId, siteKey->siteId);
     }
 
+    EncryptionResult EncryptUID(const std::string& uid, const KeyContainer& keys, Timestamp now, IdentityScope identityScope)
+    {
+        std::string encryptionResult = GenerateUid2TokenV4(uid, *keys.getMasterKey(now), keys.getCallerSiteId(), *keys.getDefaultKey(now), EncryptTokenParams());
+
+        return EncryptionResult::MakeSuccess(std::move(encryptionResult));
+    }
+
     EncryptionDataResult EncryptData(const EncryptionDataRequest& req, const KeyContainer* keys, IdentityScope identityScope)
 	{
 		if (req.GetData() == nullptr) throw std::invalid_argument("data to encrypt must not be null");

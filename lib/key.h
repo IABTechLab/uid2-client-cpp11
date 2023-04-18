@@ -11,6 +11,7 @@ namespace uid2
 	{
 		std::int64_t id;
 		int siteId;
+        int keysetId;
 		Timestamp created;
 		Timestamp activates;
 		Timestamp expires;

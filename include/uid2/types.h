@@ -106,6 +106,30 @@ namespace uid2
         int SiteKeySiteId;
 	};
 
+    class EncryptionResult
+    {
+    public:
+        static EncryptionResult MakeSuccess(std::string&& encryptedData)
+        {
+            return EncryptionResult(EncryptionStatus::SUCCESS, std::move(encryptedData));
+        }
+        static EncryptionResult MakeError(EncryptionStatus status)
+        {
+            return EncryptionResult(status, std::string());
+        }
+
+        bool IsSuccess() const { return Status == EncryptionStatus::SUCCESS; }
+        EncryptionStatus GetStatus() const { return Status; }
+        std::string GetEncryptedData() const { return EncryptedData; }
+
+    private:
+        EncryptionResult(EncryptionStatus status, std::string&& encryptedData)
+                : Status(status), EncryptedData(std::move(encryptedData)) {}
+
+        EncryptionStatus Status;
+        std::string EncryptedData;
+    };
+
 	class EncryptionDataRequest
 	{
 	public:

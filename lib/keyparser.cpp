@@ -7,7 +7,13 @@ namespace uid2
 {
 	static const std::string BODY_NAME = "body";
 	static const std::string ID_NAME = "id";
+    static const std::string KEYS_NAME = "keys";
+    static const std::string CALLER_SITE_ID_NAME = "caller_site_id";
+    static const std::string MASTER_KEYSET_ID_NAME = "master_keyset_id";
+    static const std::string DEFAULT_KEYSET_ID_NAME = "default_keyset_id";
+    static const std::string TOKEN_EXPIRY_SECONDS_NAME = "token_expiry_seconds";
 	static const std::string SITE_ID_NAME = "site_id";
+    static const std::string KEYSET_ID_NAME = "keyset_id";
 	static const std::string CREATED_NAME = "created";
 	static const std::string ACTIVATES_NAME = "activates";
 	static const std::string EXPIRES_NAME = "expires";
@@ -18,6 +24,7 @@ namespace uid2
 	static bool ExtractTimestamp(const json11::Json::object& obj, const std::string& name, Timestamp& out_value);
 	static bool ExtractString(const json11::Json::object& obj, const std::string& name, const std::string*& out_value);
 	static bool ExtractArray(const json11::Json::object& obj, const std::string& name, const json11::Json::array*& out_value);
+    static bool ExtractObject(const json11::Json::object& obj, const std::string& name, const json11::Json::object*& out_value);
 
 	bool KeyParser::TryParse(const std::string& jsonString, KeyContainer& out_container, std::string& out_err)
 	{
@@ -32,14 +39,49 @@ namespace uid2
 			return false;
 		}
 
-		const json11::Json::array* body;
-		if (!ExtractArray(json.object_items(), BODY_NAME, body))
+		const json11::Json::object* body;
+		if (!ExtractObject(json.object_items(), BODY_NAME, body))
 		{
-			out_err = "returned json does not contain an array body";
+			out_err = "returned json does not contain a body object";
 			return false;
 		}
 
-		for (const auto& obj : *body)
+        int callerSiteId;
+        if(!ExtractInt(*body, CALLER_SITE_ID_NAME, callerSiteId)){
+            out_err = "returned json does not contain a caller site id";
+            return false;
+        }
+        out_container.setCallerSiteId(callerSiteId);
+
+        int masterKeysetId;
+        if(!ExtractInt(*body, MASTER_KEYSET_ID_NAME, masterKeysetId)) {
+            out_err = "returned json does not contain a master keyset id";
+            return false;
+        }
+        out_container.setMasterKeySetId(masterKeysetId);
+
+        int defaultKeysetId;
+        if(!ExtractInt(*body, DEFAULT_KEYSET_ID_NAME, defaultKeysetId)) {
+            out_err = "returned json does not contain a default keyset id";
+            return false;
+        }
+        out_container.setDefaultKeySetId(defaultKeysetId);
+
+        int tokenExpirySeconds;
+        if(!ExtractInt(*body, TOKEN_EXPIRY_SECONDS_NAME, tokenExpirySeconds)) {
+            tokenExpirySeconds = 30*24*60*60;
+        }
+        out_container.setTokenExpirySeconds(tokenExpirySeconds);
+
+        const json11::Json::array* keys;
+
+        if(!ExtractArray(*body, KEYS_NAME, keys))
+        {
+            out_err = "returned json does not contain a keys array";
+            return false;
+        }
+
+		for (const auto& obj : *keys)
 		{
 			Key key;
 			const auto& keyItem = obj.object_items();
@@ -55,6 +97,11 @@ namespace uid2
 				out_err = "error parsing site id";
 				return false;
 			}
+
+            if(!ExtractInt(keyItem, KEYSET_ID_NAME, key.keysetId))
+            {
+                key.keysetId = NAN;
+            }
 
 			if (!ExtractTimestamp(keyItem, CREATED_NAME, key.created))
 			{
@@ -136,4 +183,16 @@ namespace uid2
 		out_value = &it->second.array_items();
 		return true;
 	}
+
+    bool ExtractObject(const json11::Json::object& obj, const std::string& name, const json11::Json::object*& out_value)
+    {
+        const auto it = obj.find(name);
+
+        if (it == obj.end()) return false;
+        if (!it->second.is_object()) return false;
+
+        out_value = &it->second.object_items();
+
+        return true;
+    }
 }

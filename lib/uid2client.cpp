@@ -7,6 +7,7 @@
 #include "keyparser.h"
 #include "uid2encryption.h"
 
+
 #include <functional>
 #include <mutex>
 
@@ -36,8 +37,10 @@ namespace uid2
 				// TODO: non-https endpoint warning
 			}
 
+            // TODO: Figure out how to get sdk version
 			httpClient.set_default_headers({
-				{ "Authorization",  "Bearer " + authKey }
+				{ "Authorization",  "Bearer " + authKey },
+                { "X-UID2-Client-Version", "uid2-client-c++"}
 				});
 		}
 
@@ -87,6 +90,21 @@ namespace uid2
 
 		return DecryptToken(token, *activeContainer, now, mImpl->identityScope, /*checkValidity*/true);
 	}
+
+    EncryptionResult UID2Client::Encrypt(const std::string& uid, Timestamp now)
+    {
+        const auto activeContainer = mImpl->GetKeyContainer();
+        if (activeContainer == nullptr)
+        {
+            return EncryptionResult::MakeError(EncryptionStatus::NOT_INITIALIZED);
+        }
+        else if (!activeContainer->IsValid(now))
+        {
+            return EncryptionResult::MakeError(EncryptionStatus::KEYS_NOT_SYNCED);
+        }
+
+        return EncryptUID(uid, *activeContainer, now, mImpl->identityScope);
+    }
 
 	EncryptionDataResult UID2Client::EncryptData(const EncryptionDataRequest& req)
 	{
@@ -174,7 +192,7 @@ namespace uid2
 	{
         std::uint8_t nonce[V2_NONCE_LEN];
         const auto request = MakeV2Request(secretKey.data(), Timestamp::Now(), nonce);
-		if (auto res = httpClient.Post("/v2/key/latest", request, "text/plain"))
+		if (auto res = httpClient.Post("/v2/key/sharing", request, "text/plain"))
 		{
 			if (res->status >= 200 || res->status < 300)
 			{

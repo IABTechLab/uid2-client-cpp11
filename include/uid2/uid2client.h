@@ -15,7 +15,9 @@ namespace uid2
 		virtual ~IUID2Client() = default;
 
 		virtual RefreshResult Refresh() = 0;
+        virtual RefreshResult RefreshJson(const std::string& json) = 0;
 		virtual DecryptionResult Decrypt(const std::string& token, Timestamp now) = 0;
+        virtual EncryptionResult Encrypt(const std::string& uid, Timestamp now) = 0;
 		virtual EncryptionDataResult EncryptData(const EncryptionDataRequest& request) = 0;
 		virtual DecryptionDataResult DecryptData(const std::string& encryptedData) = 0;
 	};
@@ -28,10 +30,11 @@ namespace uid2
 
 		RefreshResult Refresh() override;
 		DecryptionResult Decrypt(const std::string& token, Timestamp now) override;
+        EncryptionResult Encrypt(const std::string& uid, Timestamp now) override;
 		EncryptionDataResult EncryptData(const EncryptionDataRequest& request) override;
 		DecryptionDataResult DecryptData(const std::string& encryptedData) override;
 
-		RefreshResult RefreshJson(const std::string& json);
+		RefreshResult RefreshJson(const std::string& json) override;
 
 	private:
 		// Disable copy and move
