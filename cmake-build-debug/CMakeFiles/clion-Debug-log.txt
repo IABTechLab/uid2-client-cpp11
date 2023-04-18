@@ -1,6 +1,0 @@
-"/Users/cody.constine/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/231.8109.174/CLion.app/Contents/bin/cmake/mac/bin/cmake" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=/Users/cody.constine/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/231.8109.174/CLion.app/Contents/bin/ninja/mac/ninja" -G Ninja -S /Users/cody.constine/repos/uid2/uid2-client-cpp11 -B /Users/cody.constine/repos/uid2/uid2-client-cpp11/cmake-build-debug
-/usr/local/Cellar/openssl@1.1/1.1.1t/include
-/usr/local/Cellar/openssl@1.1/1.1.1t/lib/libssl.dylib/usr/local/Cellar/openssl@1.1/1.1.1t/lib/libcrypto.dylib
--- Configuring done
--- Generating done
--- Build files have been written to: /Users/cody.constine/repos/uid2/uid2-client-cpp11/cmake-build-debug
