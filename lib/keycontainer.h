@@ -27,7 +27,7 @@ namespace uid2
 			k = std::move(key);
 			if (k.siteId > 0)
 				keysBySite[k.siteId].push_back(&k);
-            if (k.keysetId != NAN)
+            if (k.keysetId > 0)
                 keysByKeyset[k.keysetId].push_back(&k);
 			if (latestKeyExpiry < k.expires)
 				latestKeyExpiry = k.expires;
@@ -121,7 +121,7 @@ namespace uid2
         }
 
 
-        long getTokenExpirySeconds() const {
+        int getTokenExpirySeconds() const {
             return tokenExpirySeconds;
         }
 
@@ -137,7 +137,7 @@ namespace uid2
         int callerSiteId;
         int masterKeySetId;
         int defaultKeySetId;
-        long tokenExpirySeconds;
+        int tokenExpirySeconds;
 
 	private:
 		KeyContainer(const KeyContainer&) = delete;

@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <optional>
 
 namespace uid2
 {

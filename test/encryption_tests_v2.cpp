@@ -22,8 +22,8 @@ static const int SITE_ID = 9000;
 static const std::uint8_t MASTER_SECRET[] = { 139, 37, 241, 173, 18, 92, 36, 232, 165, 168, 23, 18, 38, 195, 123, 92, 160, 136, 185, 40, 91, 173, 165, 221, 168, 16, 169, 164, 38, 139, 8, 155 };
 static const std::uint8_t SITE_SECRET[] = { 32, 251, 7, 194, 132, 154, 250, 86, 202, 116, 104, 29, 131, 192, 139, 215, 48, 164, 11, 65, 226, 110, 167, 14, 108, 51, 254, 125, 65, 24, 23, 133 };
 static const Timestamp NOW = Timestamp::Now();
-static const Key MASTER_KEY{MASTER_KEY_ID, -1, (int)NAN, NOW.AddDays(-1), NOW, NOW.AddDays(1), GetMasterSecret()};
-static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, (int)NAN, NOW.AddDays(-10), NOW.AddDays(-9), NOW.AddDays(1), GetSiteSecret()};
+static const Key MASTER_KEY{MASTER_KEY_ID, -1, -1, NOW.AddDays(-1), NOW, NOW.AddDays(1), GetMasterSecret()};
+static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, -1, NOW.AddDays(-10), NOW.AddDays(-9), NOW.AddDays(1), GetSiteSecret()};
 static const std::string EXAMPLE_UID = "ywsvDNINiZOVSsfkHpLpSJzXzhr6Jx9Z/4Q0+lsEUvM=";
 static const std::string CLIENT_SECRET = "ioG3wKxAokmp+rERx6A4kM/13qhyolUXIu14WN16Spo=";
 
@@ -52,8 +52,8 @@ TEST(EncryptionTestsV2, ExpiredKeyContainer)
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
 
-    const Key masterKeyExpired{MASTER_KEY_ID, -1, (int)NAN, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetMasterSecret()};
-    const Key siteKeyExpired{SITE_KEY_ID, SITE_ID, (int)NAN, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetSiteSecret()};
+    const Key masterKeyExpired{MASTER_KEY_ID, -1, -1, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetMasterSecret()};
+    const Key siteKeyExpired{SITE_KEY_ID, SITE_ID, -1, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetSiteSecret()};
     client.RefreshJson(KeySetToJson({masterKeyExpired, siteKeyExpired}));
 
     const auto res = client.Decrypt(advertisingToken, Timestamp::Now());
@@ -66,8 +66,8 @@ TEST(EncryptionTestsV2, NotAuthorizedForKey)
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
 
-    const Key anotherMasterKey{MASTER_KEY_ID + SITE_KEY_ID + 1, -1, (int)NAN, NOW, NOW, NOW.AddDays(1), GetMasterSecret()};
-    const Key anotherSiteKey{MASTER_KEY_ID + SITE_KEY_ID + 2, SITE_ID, (int)NAN, NOW, NOW, NOW.AddDays(1), GetSiteSecret()};
+    const Key anotherMasterKey{MASTER_KEY_ID + SITE_KEY_ID + 1, -1, -1, NOW, NOW, NOW.AddDays(1), GetMasterSecret()};
+    const Key anotherSiteKey{MASTER_KEY_ID + SITE_KEY_ID + 2, SITE_ID, -1, NOW, NOW, NOW.AddDays(1), GetSiteSecret()};
     client.RefreshJson(KeySetToJson({anotherMasterKey, anotherSiteKey}));
 
     const auto res = client.Decrypt(advertisingToken, Timestamp::Now());

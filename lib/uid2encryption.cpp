@@ -219,7 +219,28 @@ namespace uid2
 
     EncryptionResult EncryptUID(const std::string& uid, const KeyContainer& keys, Timestamp now, IdentityScope identityScope)
     {
-        std::string encryptionResult = GenerateUid2TokenV4(uid, *keys.getMasterKey(now), keys.getCallerSiteId(), *keys.getDefaultKey(now), EncryptTokenParams());
+        if(!keys.IsValid(now))
+        {
+            return EncryptionResult::MakeError(EncryptionStatus::KEYS_NOT_SYNCED);
+        }
+
+        auto masterKey = keys.getMasterKey(now);
+        if(!masterKey)
+        {
+            return EncryptionResult::MakeError(EncryptionStatus::NOT_AUTHORIZED_FOR_MASTER_KEY);
+        }
+
+        auto defaultKey = keys.getDefaultKey(now);
+        if(!defaultKey)
+        {
+            return EncryptionResult::MakeError(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY);
+        }
+
+        Timestamp expiry = now.AddSeconds(keys.getTokenExpirySeconds());
+        auto encryptParams = EncryptTokenParams().WithTokenExpiry(expiry);
+
+        encryptParams.identityScope = identityScope;
+        std::string encryptionResult = GenerateUid2TokenV4(uid, *masterKey, keys.getCallerSiteId(),*defaultKey, encryptParams);
 
         return EncryptionResult::MakeSuccess(std::move(encryptionResult));
     }

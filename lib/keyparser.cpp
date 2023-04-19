@@ -100,7 +100,7 @@ namespace uid2
 
             if(!ExtractInt(keyItem, KEYSET_ID_NAME, key.keysetId))
             {
-                key.keysetId = NAN;
+                key.keysetId = -1;
             }
 
 			if (!ExtractTimestamp(keyItem, CREATED_NAME, key.created))
