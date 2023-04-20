@@ -62,8 +62,7 @@ namespace uid2
 
         int defaultKeysetId;
         if(!ExtractInt(*body, DEFAULT_KEYSET_ID_NAME, defaultKeysetId)) {
-            out_err = "returned json does not contain a default keyset id";
-            return false;
+            defaultKeysetId = -1;
         }
         out_container.setDefaultKeySetId(defaultKeysetId);
 
