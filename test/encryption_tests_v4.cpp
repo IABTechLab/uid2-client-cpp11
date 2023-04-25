@@ -11,7 +11,6 @@
 
 using namespace uid2;
 
-class ClientAndToken;
 
 #define TO_VECTOR(d) (std::vector<std::uint8_t>(d, d + sizeof(d)))
 static std::vector<std::uint8_t> GetMasterSecret();
@@ -22,7 +21,6 @@ static std::string KeySetToJson(const std::vector<Key>& keys);
 static std::string KeySetToJsonForSharing(const std::vector<Key>& keys);
 static std::string KeySetToJsonForSharingWithHeader(std::string, int, const std::vector<Key>& keys);
 static std::vector<std::uint8_t> Base64Decode(const std::string& str);
-static ClientAndToken SharingSetupAndEncrypt();
 
 static const std::int64_t MASTER_KEY_ID = 164;
 static const std::int64_t SITE_KEY_ID = 165;
@@ -276,34 +274,16 @@ std::string KeySetToJson(const std::vector<Key>& keys)
 }
 
 //////////////////////  Sharing tests //////////////////////////////////////////////////////////////////
-class ClientAndToken {
-public:
-    ClientAndToken(std::shared_ptr<IUID2Client> c, std::string at)  {
-        advertisingToken = at;
-        client = c;
-    }
-
-    std::shared_ptr<IUID2Client> client;
-    std::string advertisingToken;
-};
-
-std::string SharingEncrypt(std::shared_ptr<IUID2Client> client) {
-    auto encrypted = client->Encrypt(EXAMPLE_UID, NOW);
-    EXPECT_EQ(EncryptionStatus::SUCCESS, encrypted.GetStatus());
-    return encrypted.GetEncryptedData();
-}
-
-ClientAndToken SharingSetupAndEncrypt() {
-    std::shared_ptr<IUID2Client> client = UID2ClientFactory::Create("ep", "ak", CLIENT_SECRET);
-    auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
-    client->RefreshJson(json);
-    return ClientAndToken(client, SharingEncrypt(client));
-}
 
 
 TEST(SharingTests, CanEncryptAndDecryptSharing) {
-    auto clientAndToken = SharingSetupAndEncrypt();
-    auto res = clientAndToken.client->Decrypt(clientAndToken.advertisingToken, NOW);
+    auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    client.RefreshJson(json);
+    auto advertisingToken = client.Encrypt(EXAMPLE_UID, NOW);
+    EXPECT_EQ(EncryptionStatus::SUCCESS, advertisingToken.GetStatus());
+
+    auto res = client.Decrypt(advertisingToken.GetEncryptedData(), NOW);
 
     EXPECT_EQ(DecryptionStatus::SUCCESS, res.GetStatus());
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
@@ -311,22 +291,28 @@ TEST(SharingTests, CanEncryptAndDecryptSharing) {
 
 TEST(SharingTests, CanDecryptAnotherClientsEncryptedToken)
 {
-    auto clientAndToken = SharingSetupAndEncrypt();
+    auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    client.RefreshJson(json);
+    auto advertisingToken = client.Encrypt(EXAMPLE_UID, NOW);
+    EXPECT_EQ(EncryptionStatus::SUCCESS, advertisingToken.GetStatus());
 
     UID2Client receivingClient("endpoint1", "authkey2", CLIENT_SECRET, IdentityScope::UID2);
-    auto json = KeySetToJsonForSharingWithHeader("\"default_keyset_id\": 12345,", 4874, {MASTER_KEY, SITE_KEY});
+    auto json2 = KeySetToJsonForSharingWithHeader("\"default_keyset_id\": 12345,", 4874, {MASTER_KEY, SITE_KEY});
 
-    receivingClient.RefreshJson(json);
+    receivingClient.RefreshJson(json2);
 
-    auto res = receivingClient.Decrypt(clientAndToken.advertisingToken, NOW);
+    auto res = receivingClient.Decrypt(advertisingToken.GetEncryptedData(), NOW);
     EXPECT_EQ(DecryptionStatus::SUCCESS, res.GetStatus());
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
 TEST(SharingTests, SharingTokenIsV4)
 {
-    auto clientAndToken = SharingSetupAndEncrypt();
-    auto advertisingToken = clientAndToken.advertisingToken;
+    auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    client.RefreshJson(json);
+    auto advertisingToken = client.Encrypt(EXAMPLE_UID, NOW).GetEncryptedData();
 
     bool containsBase64SepcialChars = advertisingToken.find("+") == std::string::npos || advertisingToken.find("/") == std::string::npos || advertisingToken.find("=") == std::string::npos;
     EXPECT_TRUE(containsBase64SepcialChars);
@@ -334,18 +320,22 @@ TEST(SharingTests, SharingTokenIsV4)
 
 TEST(SharingTests, Uid2ClientProducesUid2Token)
 {
-    auto clientAndToken = SharingSetupAndEncrypt();
+    auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    client.RefreshJson(json);
+    auto advertisingToken = client.Encrypt(EXAMPLE_UID, NOW);
+    EXPECT_EQ(EncryptionStatus::SUCCESS, advertisingToken.GetStatus());
 
-    EXPECT_EQ("A", clientAndToken.advertisingToken.substr(0,1));
+    EXPECT_EQ("A", advertisingToken.GetEncryptedData().substr(0,1));
 }
 
 TEST(SharingTests, EuidClientProducesEuidToken)
 {
-    std::shared_ptr<IUID2Client> client = EUIDClientFactory::Create("ep", "ak", CLIENT_SECRET);
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::EUID);
     auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
-    client->RefreshJson(json);
+    client.RefreshJson(json);
 
-    auto advertisingToken = SharingEncrypt(client);
+    auto advertisingToken = client.Encrypt(EXAMPLE_UID, NOW).GetEncryptedData();
 
     EXPECT_EQ("E", advertisingToken.substr(0,1));
 }
@@ -369,79 +359,79 @@ TEST(SharingTests, MultipleKeysPerKeyset)
     Key masterKey2{264, -1, MASTER_KEYSET_ID, NOW.AddSeconds(-2*60*60), NOW.AddSeconds(-1*60*60), NOW.AddSeconds(-1*60*60), GetMasterSecret()};
     Key siteKey2{265, SITE_ID, DEFAULT_KEYSET_ID, NOW.AddSeconds(-10*24*60*60), NOW.AddSeconds(-1*60*60), NOW.AddSeconds(-1*60*60), GetSiteSecret()};
 
-    std::shared_ptr<IUID2Client> client = UID2ClientFactory::Create("endpoint", "authkey", CLIENT_SECRET);
+    UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharing({MASTER_KEY, masterKey2, SITE_KEY, siteKey2});
-    client->RefreshJson(json);
+    client.RefreshJson(json);
 
-    auto advertisingToken = SharingEncrypt(client);
+    auto advertisingToken = client.Encrypt(EXAMPLE_UID, NOW).GetEncryptedData();
 
-    EXPECT_EQ(DecryptionStatus::SUCCESS, client->Decrypt(advertisingToken, NOW).GetStatus());
-    EXPECT_EQ(EXAMPLE_UID, client->Decrypt(advertisingToken, NOW).GetUid());
+    EXPECT_EQ(DecryptionStatus::SUCCESS, client.Decrypt(advertisingToken, NOW).GetStatus());
+    EXPECT_EQ(EXAMPLE_UID, client.Decrypt(advertisingToken, NOW).GetUid());
 }
 
 TEST(SharingTests, CannotEncryptIfNoKeyFromTheDefaultKeyset)
 {
-    auto client = UID2ClientFactory::Create("endpoint", "authkey", CLIENT_SECRET);
+    UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharing({MASTER_KEY});
-    client->RefreshJson(json);
+    client.RefreshJson(json);
 
-    auto encrypted = client->Encrypt(EXAMPLE_UID, NOW);
+    auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
 TEST(SharingTests, CannotEncryptIfTheresNoDefaultKeysetHeader)
 {
-    auto client = UID2ClientFactory::Create("endpoint", "authkey", CLIENT_SECRET);
+    UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharingWithHeader("", SITE_ID, {MASTER_KEY, SITE_KEY});
-    client->RefreshJson(json);
+    client.RefreshJson(json);
 
-    auto encrypted = client->Encrypt(EXAMPLE_UID, NOW);
+    auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
 TEST(SharingTests, ExpiryInTokenMatchesExpiryInResponse)
 {
-    auto client = UID2ClientFactory::Create("endpoint", "authkey", CLIENT_SECRET);
+    UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharingWithHeader("\"default_keyset_id\": 99999, \"token_expiry_seconds\": 2,", SITE_ID, {MASTER_KEY, SITE_KEY});
-    client->RefreshJson(json);
+    client.RefreshJson(json);
 
     auto encryptedAt = NOW;
-    auto encrypted = client->Encrypt(EXAMPLE_UID, encryptedAt);
+    auto encrypted = client.Encrypt(EXAMPLE_UID, encryptedAt);
     EXPECT_EQ(EncryptionStatus::SUCCESS, encrypted.GetStatus());
 
-    auto res = client->Decrypt(encrypted.GetEncryptedData(), encryptedAt.AddSeconds(1));
+    auto res = client.Decrypt(encrypted.GetEncryptedData(), encryptedAt.AddSeconds(1));
     EXPECT_EQ(DecryptionStatus::SUCCESS, res.GetStatus());
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 
-    auto futureDecryption = client->Decrypt(encrypted.GetEncryptedData(), NOW.AddSeconds(3));
+    auto futureDecryption = client.Decrypt(encrypted.GetEncryptedData(), NOW.AddSeconds(3));
     EXPECT_EQ(DecryptionStatus::EXPIRED_TOKEN, futureDecryption.GetStatus());
 }
 
 TEST(SharingTests, EncryptKeyExpired)
 {
-    auto client = UID2ClientFactory::Create("ep", "ak", CLIENT_SECRET);
+    UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1*24*60*60), MakeKeySecret(9)};
-    client->RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
-    auto encrypted = client->Encrypt(EXAMPLE_UID, NOW);
+    client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
+    auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
 TEST(SharingTests, EncryptKeyInactive)
 {
-    auto client = UID2ClientFactory::Create("ep", "ak", CLIENT_SECRET);
+    UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW.AddSeconds(1*24*60*60), NOW.AddSeconds(2*24*60*60), MakeKeySecret(9)};
-    client->RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
-    auto encrypted = client->Encrypt(EXAMPLE_UID, NOW);
+    client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
+    auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
 
 TEST(SharingTests, EncryptSiteKeyExpired)
 {
-    auto client = UID2ClientFactory::Create("ep", "ak", CLIENT_SECRET);
+    UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1*24*60*60), MakeKeySecret(9)};
-    client->RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
-    auto encrypted = client->Encrypt(EXAMPLE_UID, NOW);
+    client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
+    auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 

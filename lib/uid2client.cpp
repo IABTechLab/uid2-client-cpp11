@@ -75,6 +75,11 @@ namespace uid2
 		return mImpl->RefreshJson(jsonResponse);
 	}
 
+    DecryptionResult UID2Client::Decrypt(const std::string& token)
+    {
+        return Decrypt(token, Timestamp::Now());
+    }
+
 	DecryptionResult UID2Client::Decrypt(const std::string& token, Timestamp now)
 	{
 		// hold reference to container so it's not disposed by refresh
@@ -90,6 +95,11 @@ namespace uid2
 
 		return DecryptToken(token, *activeContainer, now, mImpl->identityScope, /*checkValidity*/true);
 	}
+
+    EncryptionResult UID2Client::Encrypt(const std::string& uid)
+    {
+        return Encrypt(uid, Timestamp::Now());
+    }
 
     EncryptionResult UID2Client::Encrypt(const std::string& uid, Timestamp now)
     {
