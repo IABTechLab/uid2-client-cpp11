@@ -4,10 +4,10 @@
 
 #include <cstdint>
 #include <vector>
-#include <optional>
 
 namespace uid2
 {
+    const int NO_KEYSET = -1;
 	struct Key
 	{
 		std::int64_t id;
