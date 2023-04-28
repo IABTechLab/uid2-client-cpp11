@@ -8,7 +8,8 @@
 #include <string>
 
 namespace uid2 {
-    class IUID2Client {
+    class IUID2Client
+    {
     public:
         virtual ~IUID2Client() = default;
 
@@ -23,7 +24,8 @@ namespace uid2 {
         virtual DecryptionDataResult DecryptData(const std::string &encryptedData) = 0;
     };
 
-    class UID2Client : public IUID2Client {
+    class UID2Client : public IUID2Client
+    {
     public:
         UID2Client(std::string endpoint, std::string authKey, std::string secretKey, IdentityScope identityScope);
 
@@ -59,16 +61,20 @@ namespace uid2 {
         std::unique_ptr<Impl> mImpl;
     };
 
-    class UID2ClientFactory {
+    class UID2ClientFactory
+    {
     public:
-        static std::shared_ptr<IUID2Client> Create(std::string endpoint, std::string authKey, std::string secretKey) {
+        static std::shared_ptr<IUID2Client> Create(std::string endpoint, std::string authKey, std::string secretKey)
+        {
             return std::make_shared<UID2Client>(endpoint, authKey, secretKey, IdentityScope::UID2);
         }
     };
 
-    class EUIDClientFactory {
+    class EUIDClientFactory
+    {
     public:
-        static std::shared_ptr<IUID2Client> Create(std::string endpoint, std::string authKey, std::string secretKey) {
+        static std::shared_ptr<IUID2Client> Create(std::string endpoint, std::string authKey, std::string secretKey)
+        {
             return std::make_shared<UID2Client>(endpoint, authKey, secretKey, IdentityScope::EUID);
         }
     };

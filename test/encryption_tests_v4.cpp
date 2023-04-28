@@ -54,7 +54,8 @@ void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>
 
 // unit tests to ensure the base64url encoding and decoding are identical in all supported
 // uid2 client sdks in different programming languages
-TEST(CrossPlatformConsistencyCheck, Base64UrlTest) {
+TEST(CrossPlatformConsistencyCheck, Base64UrlTest)
+{
     //the Base64 equivalent is "/+CI/+6ZmQ=="
     //and we want the Base64URL encoded to remove 2 '=' paddings at the back
     std::vector<std::uint8_t> case1 = {0xff, 0xE0, 0x88, 0xFF, 0xEE, 0x99, 0x99};
@@ -71,7 +72,8 @@ TEST(CrossPlatformConsistencyCheck, Base64UrlTest) {
 }
 
 void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t> &rawInput,
-                                                 const std::string &expectedBase64URLStr) {
+                                                 const std::string &expectedBase64URLStr)
+{
     int rawInputLen = rawInput.size();
     //the Base64 equivalent is "/+CI/+6ZmQ=="
     //and we want the Base64URL encoded to remove the '=' padding
@@ -91,7 +93,8 @@ void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>
     }
 }
 
-TEST(EncryptionTestsV4, SmokeTest) {
+TEST(EncryptionTestsV4, SmokeTest)
+{
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
     const auto advertisingToken = GenerateUid2TokenV4(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
@@ -101,7 +104,8 @@ TEST(EncryptionTestsV4, SmokeTest) {
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
-TEST(EncryptionTestsV4, EmptyKeyContainer) {
+TEST(EncryptionTestsV4, EmptyKeyContainer)
+{
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     const auto advertisingToken = GenerateUid2TokenV4(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
     const auto res = client.Decrypt(advertisingToken, Timestamp::Now());
@@ -109,7 +113,8 @@ TEST(EncryptionTestsV4, EmptyKeyContainer) {
     EXPECT_EQ(DecryptionStatus::NOT_INITIALIZED, res.GetStatus());
 }
 
-TEST(EncryptionTestsV4, ExpiredKeyContainer) {
+TEST(EncryptionTestsV4, ExpiredKeyContainer)
+{
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     const auto advertisingToken = GenerateUid2TokenV4(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
 
@@ -122,7 +127,8 @@ TEST(EncryptionTestsV4, ExpiredKeyContainer) {
     EXPECT_EQ(DecryptionStatus::KEYS_NOT_SYNCED, res.GetStatus());
 }
 
-TEST(EncryptionTestsV4, NotAuthorizedForKey) {
+TEST(EncryptionTestsV4, NotAuthorizedForKey)
+{
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     const auto advertisingToken = GenerateUid2TokenV4(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
 
@@ -135,7 +141,8 @@ TEST(EncryptionTestsV4, NotAuthorizedForKey) {
     EXPECT_EQ(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY, res.GetStatus());
 }
 
-TEST(EncryptionTestsV4, InvalidPayload) {
+TEST(EncryptionTestsV4, InvalidPayload)
+{
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     std::vector<uint8_t> payload;
     uid2::UID2Base64UrlCoder::Decode(
@@ -146,7 +153,8 @@ TEST(EncryptionTestsV4, InvalidPayload) {
     EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken, NOW).GetStatus());
 }
 
-TEST(EncryptionTestsV4, TokenExpiryAndCustomNow) {
+TEST(EncryptionTestsV4, TokenExpiryAndCustomNow)
+{
     const Timestamp expiry = NOW.AddDays(-6);
     const auto params = EncryptTokenParams().WithTokenExpiry(expiry);
 
@@ -164,7 +172,8 @@ TEST(EncryptionTestsV4, TokenExpiryAndCustomNow) {
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
-TEST(EncryptDataTestsV4, SiteIdFromToken) {
+TEST(EncryptDataTestsV4, SiteIdFromToken)
+{
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
@@ -180,7 +189,8 @@ TEST(EncryptDataTestsV4, SiteIdFromToken) {
     EXPECT_EQ(TO_VECTOR(data), decrypted.GetDecryptedData());
 }
 
-TEST(EncryptDataTestsV4, SiteIdFromTokenCustomSiteKeySiteId) {
+TEST(EncryptDataTestsV4, SiteIdFromTokenCustomSiteKeySiteId)
+{
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
@@ -195,7 +205,8 @@ TEST(EncryptDataTestsV4, SiteIdFromTokenCustomSiteKeySiteId) {
     EXPECT_EQ(TO_VECTOR(data), decrypted.GetDecryptedData());
 }
 
-TEST(EncryptDataTestsV4, SiteIdAndTokenSet) {
+TEST(EncryptDataTestsV4, SiteIdAndTokenSet)
+{
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
@@ -205,7 +216,8 @@ TEST(EncryptDataTestsV4, SiteIdAndTokenSet) {
                  std::invalid_argument);
 }
 
-TEST(EncryptDataTestsV4, TokenDecryptKeyExpired) {
+TEST(EncryptDataTestsV4, TokenDecryptKeyExpired)
+{
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     const Key key{SITE_KEY_ID, SITE_ID2, -1, NOW, NOW, NOW.AddDays(-1), GetSiteSecret()};
@@ -217,7 +229,8 @@ TEST(EncryptDataTestsV4, TokenDecryptKeyExpired) {
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
-TEST(EncryptDataTestsV4, TokenExpired) {
+TEST(EncryptDataTestsV4, TokenExpired)
+{
     const Timestamp expiry = NOW.AddDays(-6);
     const auto params = EncryptTokenParams().WithTokenExpiry(expiry);
 
@@ -241,7 +254,8 @@ TEST(EncryptDataTestsV4, TokenExpired) {
     EXPECT_EQ(TO_VECTOR(data), decrypted.GetDecryptedData());
 }
 
-TEST(EncryptDataTestsV4, RawUidProducesCorrectIdentityTypeInToken) {
+TEST(EncryptDataTestsV4, RawUidProducesCorrectIdentityTypeInToken)
+{
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
 
@@ -258,7 +272,8 @@ TEST(EncryptDataTestsV4, RawUidProducesCorrectIdentityTypeInToken) {
               GetTokenIdentityType("EKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client)); //v3 EUID test@example.com
 }
 
-std::string KeySetToJson(const std::vector<Key> &keys) {
+std::string KeySetToJson(const std::vector<Key> &keys)
+{
     std::stringstream ss;
     ss << "{\"body\": {";
     ss << "\"caller_site_id\": " << SITE_ID << ",";
@@ -286,7 +301,8 @@ std::string KeySetToJson(const std::vector<Key> &keys) {
 //////////////////////  Sharing tests //////////////////////////////////////////////////////////////////
 
 
-TEST(SharingTests, CanEncryptAndDecryptSharing) {
+TEST(SharingTests, CanEncryptAndDecryptSharing)
+{
     auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(json);
@@ -299,7 +315,8 @@ TEST(SharingTests, CanEncryptAndDecryptSharing) {
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
-TEST(SharingTests, CanDecryptAnotherClientsEncryptedToken) {
+TEST(SharingTests, CanDecryptAnotherClientsEncryptedToken)
+{
     auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(json);
@@ -316,7 +333,8 @@ TEST(SharingTests, CanDecryptAnotherClientsEncryptedToken) {
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
-TEST(SharingTests, SharingTokenIsV4) {
+TEST(SharingTests, SharingTokenIsV4)
+{
     auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(json);
@@ -328,7 +346,8 @@ TEST(SharingTests, SharingTokenIsV4) {
     EXPECT_TRUE(containsBase64SpecialChars);
 }
 
-TEST(SharingTests, Uid2ClientProducesUid2Token) {
+TEST(SharingTests, Uid2ClientProducesUid2Token)
+{
     auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(json);
@@ -338,7 +357,8 @@ TEST(SharingTests, Uid2ClientProducesUid2Token) {
     EXPECT_EQ("A", advertisingToken.GetEncryptedData().substr(0, 1));
 }
 
-TEST(SharingTests, EuidClientProducesEuidToken) {
+TEST(SharingTests, EuidClientProducesEuidToken)
+{
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::EUID);
     auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
     client.RefreshJson(json);
@@ -349,7 +369,8 @@ TEST(SharingTests, EuidClientProducesEuidToken) {
 }
 
 
-TEST(SharingTests, RawUidProducesCorrectIdentityTypeInToken) {
+TEST(SharingTests, RawUidProducesCorrectIdentityTypeInToken)
+{
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharing({MASTER_KEY, SITE_KEY});
     client.RefreshJson(json);
@@ -366,7 +387,8 @@ TEST(SharingTests, RawUidProducesCorrectIdentityTypeInToken) {
               GetTokenIdentityType("EKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client)); //v3 EUID test@example.com
 }
 
-TEST(SharingTests, MultipleKeysPerKeyset) {
+TEST(SharingTests, MultipleKeysPerKeyset)
+{
     Key masterKey2{264, -1, MASTER_KEYSET_ID, NOW.AddSeconds(-2 * 60 * 60), NOW.AddSeconds(-1 * 60 * 60),
                    NOW.AddSeconds(-1 * 60 * 60), GetMasterSecret()};
     Key siteKey2{265, SITE_ID, DEFAULT_KEYSET_ID, NOW.AddSeconds(-10 * 24 * 60 * 60), NOW.AddSeconds(-1 * 60 * 60),
@@ -382,7 +404,8 @@ TEST(SharingTests, MultipleKeysPerKeyset) {
     EXPECT_EQ(EXAMPLE_UID, client.Decrypt(advertisingToken, NOW).GetUid());
 }
 
-TEST(SharingTests, CannotEncryptIfNoKeyFromTheDefaultKeyset) {
+TEST(SharingTests, CannotEncryptIfNoKeyFromTheDefaultKeyset)
+{
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharing({MASTER_KEY});
     client.RefreshJson(json);
@@ -391,7 +414,8 @@ TEST(SharingTests, CannotEncryptIfNoKeyFromTheDefaultKeyset) {
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
-TEST(SharingTests, CannotEncryptIfTheresNoDefaultKeysetHeader) {
+TEST(SharingTests, CannotEncryptIfTheresNoDefaultKeysetHeader)
+{
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharingWithHeader("", SITE_ID, {MASTER_KEY, SITE_KEY});
     client.RefreshJson(json);
@@ -400,7 +424,8 @@ TEST(SharingTests, CannotEncryptIfTheresNoDefaultKeysetHeader) {
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
-TEST(SharingTests, ExpiryInTokenMatchesExpiryInResponse) {
+TEST(SharingTests, ExpiryInTokenMatchesExpiryInResponse)
+{
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharingWithHeader("\"default_keyset_id\": 99999, \"token_expiry_seconds\": 2,", SITE_ID,
                                                  {MASTER_KEY, SITE_KEY});
@@ -418,7 +443,8 @@ TEST(SharingTests, ExpiryInTokenMatchesExpiryInResponse) {
     EXPECT_EQ(DecryptionStatus::EXPIRED_TOKEN, futureDecryption.GetStatus());
 }
 
-TEST(SharingTests, EncryptKeyExpired) {
+TEST(SharingTests, EncryptKeyExpired)
+{
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1 * 24 * 60 * 60), MakeKeySecret(9)};
     client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
@@ -426,7 +452,8 @@ TEST(SharingTests, EncryptKeyExpired) {
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
-TEST(SharingTests, EncryptKeyInactive) {
+TEST(SharingTests, EncryptKeyInactive)
+{
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW.AddSeconds(1 * 24 * 60 * 60),
             NOW.AddSeconds(2 * 24 * 60 * 60), MakeKeySecret(9)};
@@ -436,7 +463,8 @@ TEST(SharingTests, EncryptKeyInactive) {
 }
 
 
-TEST(SharingTests, EncryptSiteKeyExpired) {
+TEST(SharingTests, EncryptSiteKeyExpired)
+{
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1 * 24 * 60 * 60), MakeKeySecret(9)};
     client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
@@ -445,7 +473,8 @@ TEST(SharingTests, EncryptSiteKeyExpired) {
 }
 
 std::string
-KeySetToJsonForSharingWithHeader(std::string defaultKeyset, int callerSiteId, const std::vector<Key> &keys) {
+KeySetToJsonForSharingWithHeader(std::string defaultKeyset, int callerSiteId, const std::vector<Key> &keys)
+{
     std::stringstream ss;
     ss << "{\"body\": {";
     ss << "\"caller_site_id\": " << callerSiteId << ",";
@@ -472,11 +501,13 @@ KeySetToJsonForSharingWithHeader(std::string defaultKeyset, int callerSiteId, co
     return ss.str();
 }
 
-std::string KeySetToJsonForSharing(const std::vector<Key> &keys) {
+std::string KeySetToJsonForSharing(const std::vector<Key> &keys)
+{
     return KeySetToJsonForSharingWithHeader("\"default_keyset_id\": 99999,", SITE_ID, keys);
 }
 
-IdentityType GetTokenIdentityType(std::string rawUid, UID2Client &client) {
+IdentityType GetTokenIdentityType(std::string rawUid, UID2Client &client)
+{
     auto token = GenerateUid2TokenV4(rawUid, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
     EXPECT_EQ(rawUid, client.Decrypt(token, Timestamp::Now()).GetUid());
 
@@ -490,19 +521,23 @@ IdentityType GetTokenIdentityType(std::string rawUid, UID2Client &client) {
 }
 
 
-std::vector<std::uint8_t> GetMasterSecret() {
+std::vector<std::uint8_t> GetMasterSecret()
+{
     return std::vector<std::uint8_t>(MASTER_SECRET, MASTER_SECRET + sizeof(MASTER_SECRET));
 }
 
-std::vector<std::uint8_t> GetSiteSecret() {
+std::vector<std::uint8_t> GetSiteSecret()
+{
     return std::vector<std::uint8_t>(SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET));
 }
 
-std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v) {
+std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v)
+{
     return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);
 }
 
-std::vector<std::uint8_t> Base64Decode(const std::string &str) {
+std::vector<std::uint8_t> Base64Decode(const std::string &str)
+{
     std::vector<std::uint8_t> result;
     macaron::Base64::Decode(str, result);
     return result;

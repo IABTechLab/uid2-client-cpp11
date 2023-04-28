@@ -13,11 +13,13 @@
 #include <openssl/rand.h>
 
 namespace uid2 {
-    enum {
+    enum
+    {
         BLOCK_SIZE = 16
     };
 
-    enum class PayloadType : std::uint8_t {
+    enum class PayloadType : std::uint8_t
+    {
         ENCRYPTED_DATA = 128,
         ENCRYPTED_DATA_V3 = 96,
     };
@@ -43,7 +45,8 @@ namespace uid2 {
 
     DecryptionResult
     DecryptToken(const std::string &token, const KeyContainer &keys, Timestamp now, IdentityScope identityScope,
-                 bool checkValidity) {
+                 bool checkValidity)
+    {
         if (token.size() < 4) {
             return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
         }
@@ -85,7 +88,8 @@ namespace uid2 {
 
     static DecryptionResult
     DecryptTokenV2(const std::vector<std::uint8_t> &encryptedId, const KeyContainer &keys, Timestamp now,
-                   bool checkValidity) {
+                   bool checkValidity)
+    {
         BigEndianByteReader reader(encryptedId);
 
         const int version = (int) reader.ReadByte();
@@ -140,7 +144,8 @@ namespace uid2 {
 
     static DecryptionResult
     DecryptTokenV3(const std::vector<std::uint8_t> &encryptedId, const KeyContainer &keys, Timestamp now,
-                   IdentityScope identityScope, bool checkValidity) {
+                   IdentityScope identityScope, bool checkValidity)
+    {
         BigEndianByteReader reader(encryptedId);
 
         const auto prefix = reader.ReadByte();
@@ -210,7 +215,8 @@ namespace uid2 {
     }
 
     EncryptionResult
-    EncryptUID(const std::string &uid, const KeyContainer &keys, Timestamp now, IdentityScope identityScope) {
+    EncryptUID(const std::string &uid, const KeyContainer &keys, Timestamp now, IdentityScope identityScope)
+    {
         if (!keys.IsValid(now)) {
             return EncryptionResult::MakeError(EncryptionStatus::KEYS_NOT_SYNCED);
         }
@@ -236,7 +242,8 @@ namespace uid2 {
     }
 
     EncryptionDataResult
-    EncryptData(const EncryptionDataRequest &req, const KeyContainer *keys, IdentityScope identityScope) {
+    EncryptData(const EncryptionDataRequest &req, const KeyContainer *keys, IdentityScope identityScope)
+    {
         if (req.GetData() == nullptr) throw std::invalid_argument("data to encrypt must not be null");
 
         const auto now = req.GetNow();
@@ -301,7 +308,8 @@ namespace uid2 {
                                               IdentityScope identityScope);
 
     DecryptionDataResult DecryptData(const std::vector<std::uint8_t> &encryptedBytes, const KeyContainer &keys,
-                                     IdentityScope identityScope) {
+                                     IdentityScope identityScope)
+    {
         if (encryptedBytes.empty()) {
             return DecryptionDataResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
         }
@@ -314,7 +322,8 @@ namespace uid2 {
     }
 
     static DecryptionDataResult
-    DecryptDataV2(const std::vector<std::uint8_t> &encryptedBytes, const KeyContainer &keys) {
+    DecryptDataV2(const std::vector<std::uint8_t> &encryptedBytes, const KeyContainer &keys)
+    {
         BigEndianByteReader reader(encryptedBytes);
 
         if (reader.ReadByte() != (std::uint8_t) PayloadType::ENCRYPTED_DATA) {
@@ -340,7 +349,8 @@ namespace uid2 {
     }
 
     static DecryptionDataResult DecryptDataV3(const std::vector<std::uint8_t> &encryptedBytes, const KeyContainer &keys,
-                                              IdentityScope identityScope) {
+                                              IdentityScope identityScope)
+    {
         BigEndianByteReader reader(encryptedBytes);
         const auto payloadScope = DecodeIdentityScopeV3(reader.ReadByte());
         if (payloadScope != identityScope) {
@@ -370,7 +380,8 @@ namespace uid2 {
     }
 
     void Decrypt(const std::uint8_t *data, int size, const std::uint8_t *iv, const std::uint8_t *secret,
-                 std::vector<std::uint8_t> &out_decrypted) {
+                 std::vector<std::uint8_t> &out_decrypted)
+    {
         AES256 aes;
         const int paddedSize = (int) aes.GetPaddingLength(size);
         if (paddedSize != size || size < 16) throw "invalid input";
@@ -386,23 +397,27 @@ namespace uid2 {
     using CleanupPtr = std::unique_ptr<T, D>;
 
     template<typename T, typename D>
-    CleanupPtr<T, D> MakeCleanupPtr(T *ptr, D deleter) {
+    CleanupPtr<T, D> MakeCleanupPtr(T *ptr, D deleter)
+    {
         return CleanupPtr<T, D>(ptr, deleter);
     }
 
-    void RandomBytes(std::uint8_t *out, int count) {
+    void RandomBytes(std::uint8_t *out, int count)
+    {
         const int rc = RAND_bytes(out, count);
         if (rc <= 0) {
             throw std::runtime_error("failed to generate random bytes: " + std::to_string(ERR_get_error()));
         }
     }
 
-    int EncryptGCM(const std::uint8_t *data, int size, const std::uint8_t *secret, std::uint8_t *out_encrypted) {
+    int EncryptGCM(const std::uint8_t *data, int size, const std::uint8_t *secret, std::uint8_t *out_encrypted)
+    {
         return EncryptGCM(data, size, nullptr, secret, out_encrypted);
     }
 
     static int EncryptGCM(const std::uint8_t *data, int size, const std::uint8_t *iv, const std::uint8_t *secret,
-                          std::uint8_t *out_encrypted) {
+                          std::uint8_t *out_encrypted)
+    {
         int totalLen = 0;
         if (iv == nullptr) {
             const int rc = RAND_bytes(out_encrypted, GCM_IV_LENGTH);
@@ -442,7 +457,8 @@ namespace uid2 {
         return totalLen;
     }
 
-    int DecryptGCM(const std::uint8_t *encrypted, int size, const std::uint8_t *secret, std::uint8_t *out_decrypted) {
+    int DecryptGCM(const std::uint8_t *encrypted, int size, const std::uint8_t *secret, std::uint8_t *out_decrypted)
+    {
         if (size < GCM_IV_LENGTH + GCM_AUTHTAG_LENGTH) {
             throw std::runtime_error("invalid ciphertext");
         }
@@ -475,7 +491,8 @@ namespace uid2 {
         return totalLen;
     }
 
-    static IdentityScope DecodeIdentityScopeV3(std::uint8_t value) {
+    static IdentityScope DecodeIdentityScopeV3(std::uint8_t value)
+    {
         return (IdentityScope) ((value >> 4) & 1);
     }
 }

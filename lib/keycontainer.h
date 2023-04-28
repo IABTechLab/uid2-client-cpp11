@@ -7,18 +7,21 @@
 #include <vector>
 
 namespace uid2 {
-    class KeyContainer {
+    class KeyContainer
+    {
     public:
         KeyContainer() = default;
 
-        KeyContainer(int _callerSiteId, int _masterKeysetId, int _defaultKeysetId, long _tokenExpirySeconds) {
+        KeyContainer(int _callerSiteId, int _masterKeysetId, int _defaultKeysetId, long _tokenExpirySeconds)
+        {
             callerSiteId = _callerSiteId;
             masterKeySetId = _masterKeysetId;
             defaultKeySetId = _defaultKeysetId;
             tokenExpirySeconds = _tokenExpirySeconds;
         }
 
-        void Add(Key &&key) {
+        void Add(Key &&key)
+        {
             auto &k = idMap[key.id];
             k = std::move(key);
             if (k.siteId > 0)
@@ -29,7 +32,8 @@ namespace uid2 {
                 latestKeyExpiry = k.expires;
         }
 
-        void Sort() {
+        void Sort()
+        {
             const auto end = keysBySite.end();
             for (auto it = keysBySite.begin(); it != end; ++it) {
                 auto &siteKeys = it->second;
@@ -38,13 +42,15 @@ namespace uid2 {
             }
         }
 
-        const Key *Get(std::int64_t id) const {
+        const Key *Get(std::int64_t id) const
+        {
             const auto it = idMap.find(id);
             return it == idMap.end() ? nullptr : &it->second;
         }
 
 
-        const Key *GetActiveSiteKey(int siteId, Timestamp now) const {
+        const Key *GetActiveSiteKey(int siteId, Timestamp now) const
+        {
             const auto itK = keysBySite.find(siteId);
             if (itK == keysBySite.end() || itK->second.empty()) return nullptr;
             const auto &siteKeys = itK->second;
@@ -58,7 +64,8 @@ namespace uid2 {
             return nullptr;
         }
 
-        const Key *GetActiveKeysetKey(int keysetId, Timestamp now) const {
+        const Key *GetActiveKeysetKey(int keysetId, Timestamp now) const
+        {
             const auto itK = keysByKeyset.find(keysetId);
             if (itK == keysByKeyset.end() || itK->second.empty()) return nullptr;
             const auto &siteKeys = itK->second;
@@ -73,48 +80,59 @@ namespace uid2 {
 
         }
 
-        inline bool IsValid(Timestamp now) const {
+        inline bool IsValid(Timestamp now) const
+        {
             return latestKeyExpiry > now;
         }
 
-        int getCallerSiteId() const {
+        int getCallerSiteId() const
+        {
             return callerSiteId;
         }
 
-        void setCallerSiteId(int callerSiteId) {
+        void setCallerSiteId(int callerSiteId)
+        {
             KeyContainer::callerSiteId = callerSiteId;
         }
 
-        int getMasterKeySetId() const {
+        int getMasterKeySetId() const
+        {
             return masterKeySetId;
         }
 
-        const Key *getMasterKey(Timestamp now) const {
+        const Key *getMasterKey(Timestamp now) const
+        {
             return GetActiveKeysetKey(masterKeySetId, now);
         }
 
-        void setMasterKeySetId(int masterKeySetId) {
+        void setMasterKeySetId(int masterKeySetId)
+        {
             KeyContainer::masterKeySetId = masterKeySetId;
         }
 
-        int getDefaultKeySetId() const {
+        int getDefaultKeySetId() const
+        {
             return defaultKeySetId;
         }
 
-        void setDefaultKeySetId(int defaultKeySetId) {
+        void setDefaultKeySetId(int defaultKeySetId)
+        {
             KeyContainer::defaultKeySetId = defaultKeySetId;
         }
 
-        const Key *getDefaultKey(Timestamp now) const {
+        const Key *getDefaultKey(Timestamp now) const
+        {
             return GetActiveKeysetKey(defaultKeySetId, now);
         }
 
 
-        int getTokenExpirySeconds() const {
+        int getTokenExpirySeconds() const
+        {
             return tokenExpirySeconds;
         }
 
-        void setTokenExpirySeconds(long tokenExpirySeconds) {
+        void setTokenExpirySeconds(long tokenExpirySeconds)
+        {
             KeyContainer::tokenExpirySeconds = tokenExpirySeconds;
         }
 
@@ -123,10 +141,10 @@ namespace uid2 {
         std::unordered_map<int, std::vector<const Key *>> keysBySite;
         std::unordered_map<int, std::vector<const Key *>> keysByKeyset;
         Timestamp latestKeyExpiry;
-        int callerSiteId;
-        int masterKeySetId;
-        int defaultKeySetId;
-        int tokenExpirySeconds;
+        int callerSiteId = -1;
+        int masterKeySetId = -1;
+        int defaultKeySetId = -1;
+        int tokenExpirySeconds = -1;
 
     private:
         KeyContainer(const KeyContainer &) = delete;
