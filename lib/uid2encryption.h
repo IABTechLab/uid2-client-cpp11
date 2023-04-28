@@ -4,6 +4,7 @@
 
 #include <uid2/timestamp.h>
 #include <uid2/types.h>
+#include <uid2/uid2_token_generator.h>
 
 #include <cstdint>
 #include <vector>
@@ -28,6 +29,8 @@ namespace uid2
         IdentityScope identityScope);
 
     void RandomBytes(std::uint8_t* out, int count);
+
+    EncryptionResult EncryptUID(const std::string& uid, const KeyContainer& keys, Timestamp now, IdentityScope identityScope);
 
     int EncryptGCM(const std::uint8_t* data, int size, const std::uint8_t* secret, std::uint8_t* out_encrypted);
     int DecryptGCM(const std::uint8_t* encrypted, int size, const std::uint8_t* secret, std::uint8_t* out_decrypted);

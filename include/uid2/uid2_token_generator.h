@@ -1,8 +1,8 @@
 #pragma once
 
-#include <uid2/types.h>
+#include "types.h"
 
-#include "key.h"
+#include "../../lib/key.h"
 
 #include <string>
 

@@ -7,10 +7,12 @@
 
 namespace uid2
 {
+    const int NO_KEYSET = -1;
 	struct Key
 	{
 		std::int64_t id;
 		int siteId;
+        int keysetId;
 		Timestamp created;
 		Timestamp activates;
 		Timestamp expires;

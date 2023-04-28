@@ -2,7 +2,7 @@
 
 #include "base64.h"
 #include "key.h"
-#include "uid2_token_generator.h"
+#include "uid2/uid2_token_generator.h"
 
 #include <gtest/gtest.h>
 
@@ -24,8 +24,8 @@ static const int SITE_ID2 = 2;
 static const std::uint8_t MASTER_SECRET[] = { 139, 37, 241, 173, 18, 92, 36, 232, 165, 168, 23, 18, 38, 195, 123, 92, 160, 136, 185, 40, 91, 173, 165, 221, 168, 16, 169, 164, 38, 139, 8, 155 };
 static const std::uint8_t SITE_SECRET[] = { 32, 251, 7, 194, 132, 154, 250, 86, 202, 116, 104, 29, 131, 192, 139, 215, 48, 164, 11, 65, 226, 110, 167, 14, 108, 51, 254, 125, 65, 24, 23, 133 };
 static const Timestamp NOW = Timestamp::Now();
-static const Key MASTER_KEY{MASTER_KEY_ID, -1, NOW.AddDays(-1), NOW, NOW.AddDays(1), GetMasterSecret()};
-static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, NOW.AddDays(-10), NOW.AddDays(-9), NOW.AddDays(1), GetSiteSecret()};
+static const Key MASTER_KEY{MASTER_KEY_ID, -1, -1, NOW.AddDays(-1), NOW, NOW.AddDays(1), GetMasterSecret()};
+static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, -1, NOW.AddDays(-10), NOW.AddDays(-9), NOW.AddDays(1), GetSiteSecret()};
 static const std::string EXAMPLE_UID = "ywsvDNINiZOVSsfkHpLpSJzXzhr6Jx9Z/4Q0+lsEUvM=";
 static const std::string CLIENT_SECRET = "ioG3wKxAokmp+rERx6A4kM/13qhyolUXIu14WN16Spo=";
 
@@ -54,8 +54,8 @@ TEST(EncryptionTestsV3, ExpiredKeyContainer)
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
 
-	const Key masterKeyExpired{MASTER_KEY_ID, -1, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetMasterSecret()};
-	const Key siteKeyExpired{SITE_KEY_ID, SITE_ID, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetSiteSecret()};
+	const Key masterKeyExpired{MASTER_KEY_ID, -1, -1, NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetMasterSecret()};
+	const Key siteKeyExpired{SITE_KEY_ID, SITE_ID, -1,NOW, NOW.AddDays(-2), NOW.AddDays(-1), GetSiteSecret()};
 	client.RefreshJson(KeySetToJson({masterKeyExpired, siteKeyExpired}));
 
 	const auto res = client.Decrypt(advertisingToken, Timestamp::Now());
@@ -68,8 +68,8 @@ TEST(EncryptionTestsV3, NotAuthorizedForKey)
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const auto advertisingToken = GenerateUid2TokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
 
-	const Key anotherMasterKey{MASTER_KEY_ID + SITE_KEY_ID + 1, -1, NOW, NOW, NOW.AddDays(1), GetMasterSecret()};
-	const Key anotherSiteKey{MASTER_KEY_ID + SITE_KEY_ID + 2, SITE_ID, NOW, NOW, NOW.AddDays(1), GetSiteSecret()};
+	const Key anotherMasterKey{MASTER_KEY_ID + SITE_KEY_ID + 1, -1, -1, NOW, NOW, NOW.AddDays(1), GetMasterSecret()};
+	const Key anotherSiteKey{MASTER_KEY_ID + SITE_KEY_ID + 2, SITE_ID, -1, NOW, NOW, NOW.AddDays(1), GetSiteSecret()};
 	client.RefreshJson(KeySetToJson({anotherMasterKey, anotherSiteKey}));
 
 	const auto res = client.Decrypt(advertisingToken, Timestamp::Now());
@@ -194,13 +194,13 @@ TEST(EncryptDataTestsV3, MultipleSiteKeys)
 	const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
 	const std::vector<Key> keys = {
-		Key{0, SITE_ID, NOW, NOW.AddDays(3), NOW.AddDays(10), MakeKeySecret(0)},
-		Key{1, SITE_ID, NOW, NOW.AddDays(-4), NOW.AddDays(10), MakeKeySecret(1)},
-		Key{2, SITE_ID, NOW, NOW.AddDays(-2), NOW.AddDays(10), MakeKeySecret(2)},
-		Key{3, SITE_ID, NOW, NOW.AddDays(-4), NOW.AddDays(-3), MakeKeySecret(3)},
-		Key{4, SITE_ID, NOW, NOW.AddDays(-4), NOW.AddDays(1), MakeKeySecret(4)},
-		Key{5, SITE_ID, NOW, NOW.AddDays(-5), NOW.AddDays(2), MakeKeySecret(5)},
-		Key{6, SITE_ID, NOW, NOW.AddDays(-1), NOW.AddDays(2), MakeKeySecret(6)}
+		Key{0, SITE_ID, -1, NOW, NOW.AddDays(3), NOW.AddDays(10), MakeKeySecret(0)},
+		Key{1, SITE_ID, -1, NOW, NOW.AddDays(-4), NOW.AddDays(10), MakeKeySecret(1)},
+		Key{2, SITE_ID, -1, NOW, NOW.AddDays(-2), NOW.AddDays(10), MakeKeySecret(2)},
+		Key{3, SITE_ID, -1, NOW, NOW.AddDays(-4), NOW.AddDays(-3), MakeKeySecret(3)},
+		Key{4, SITE_ID, -1, NOW, NOW.AddDays(-4), NOW.AddDays(1), MakeKeySecret(4)},
+		Key{5, SITE_ID, -1, NOW, NOW.AddDays(-5), NOW.AddDays(2), MakeKeySecret(5)},
+		Key{6, SITE_ID, -1, NOW, NOW.AddDays(-1), NOW.AddDays(2), MakeKeySecret(6)}
 	};
 
 	const auto checkSiteKey = [&](Timestamp now, const Key& expectedSiteKey)
@@ -239,7 +239,7 @@ TEST(EncryptDataTestsV3, KeyExpired)
 {
 	const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-	const Key key{SITE_KEY_ID, SITE_ID, NOW, NOW, NOW.AddDays(-1), GetSiteSecret()};
+	const Key key{SITE_KEY_ID, SITE_ID, -1, NOW, NOW, NOW.AddDays(-1), GetSiteSecret()};
 	const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithKey(key));
 	EXPECT_FALSE(encrypted.IsSuccess());
 	EXPECT_EQ(EncryptionStatus::KEY_INACTIVE, encrypted.GetStatus());
@@ -249,7 +249,7 @@ TEST(EncryptDataTestsV3, TokenDecryptKeyExpired)
 {
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-    const Key key{SITE_KEY_ID, SITE_ID2, NOW, NOW, NOW.AddDays(-1), GetSiteSecret()};
+    const Key key{SITE_KEY_ID, SITE_ID2, -1, NOW, NOW, NOW.AddDays(-1), GetSiteSecret()};
     client.RefreshJson(KeySetToJson({MASTER_KEY, key}));
     const auto advertisingToken = GenerateUid2TokenV3(EXAMPLE_UID, MASTER_KEY, SITE_ID, key);
     const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithAdvertisingToken(advertisingToken));
@@ -261,7 +261,7 @@ TEST(EncryptDataTestsV3, KeyInactive)
 {
 	const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
 	UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-	const Key key{SITE_KEY_ID, SITE_ID, NOW, NOW.AddDays(1), NOW.AddDays(2), GetSiteSecret()};
+	const Key key{SITE_KEY_ID, SITE_ID, -1, NOW, NOW.AddDays(1), NOW.AddDays(2), GetSiteSecret()};
 	const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithKey(key));
 	EXPECT_FALSE(encrypted.IsSuccess());
 	EXPECT_EQ(EncryptionStatus::KEY_INACTIVE, encrypted.GetStatus());
