@@ -131,7 +131,7 @@ namespace uid2 {
             return tokenExpirySeconds;
         }
 
-        void setTokenExpirySeconds(long tokenExpirySeconds)
+        void setTokenExpirySeconds(int64_t tokenExpirySeconds)
         {
             KeyContainer::tokenExpirySeconds = tokenExpirySeconds;
         }
@@ -144,7 +144,7 @@ namespace uid2 {
         int callerSiteId = -1;
         int masterKeySetId = -1;
         int defaultKeySetId = -1;
-        int tokenExpirySeconds = -1;
+        int64_t tokenExpirySeconds = -1;
 
     private:
         KeyContainer(const KeyContainer &) = delete;
