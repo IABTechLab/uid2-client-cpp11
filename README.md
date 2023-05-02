@@ -6,7 +6,7 @@ This SDK simplifies integration with UID2 for those using C++.
 
 ## Dependencies
 
-This SDK supports C++ version 11.
+This SDK requires C++ version 11.
 
 ```
 CMake 3.12+
