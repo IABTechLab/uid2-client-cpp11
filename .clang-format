@@ -1,0 +1,33 @@
+---
+BasedOnStyle: Chromium
+ColumnLimit: 160
+AccessModifierOffset: -4
+AlignAfterOpenBracket: AlwaysBreak
+AllowShortEnumsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: WebKit
+ContinuationIndentWidth: 4
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+IndentWidth: 4
+
+SortIncludes: true
+IncludeBlocks:   Regroup
+IncludeCategories:
+  - Regex:           '^".*'
+    Priority:        1
+    CaseSensitive:   false
+  - Regex:           '^<uid2/.*'
+    Priority:        2
+    CaseSensitive:   false
+  - Regex:           '^<.*\.hp*>'
+    Priority:        3
+    CaseSensitive:   false
+  - Regex:           '^<.*'
+    Priority:        4
+    CaseSensitive:   false
+  - Regex:           '.*'
+    Priority:        5
+    CaseSensitive:   false
+
+...

@@ -29,14 +29,14 @@ SOFTWARE.
 #ifndef _AES_H_
 #define _AES_H_
 
+#include <stdio.h>
+
 #include <cstring>
 #include <iostream>
-#include <stdio.h>
 
 using namespace std;
 
-class AES256
-{
+class AES256 {
 private:
     const int Nb = 4;
     const int Nk = 8;
@@ -46,15 +46,15 @@ private:
 
     void SubBytes(unsigned char** state);
 
-    void ShiftRow(unsigned char** state, int i, int n);    // shift row i on n positions
+    void ShiftRow(unsigned char** state, int i, int n);  // shift row i on n positions
 
     void ShiftRows(unsigned char** state);
 
-    unsigned char xtime(unsigned char b);    // multiply on x
+    unsigned char xtime(unsigned char b);  // multiply on x
 
     unsigned char mul_bytes(unsigned char a, unsigned char b);
 
-    void MixSingleColumn(unsigned char *r);
+    void MixSingleColumn(unsigned char* r);
 
     void MixColumns(unsigned char** state);
 
@@ -86,7 +86,7 @@ public:
 
     unsigned int GetPaddingLength(unsigned int len);
 
-	int EncryptCBC(const unsigned char* in, unsigned int inLen, const unsigned char* key, const unsigned char* iv, unsigned char* out);
+    int EncryptCBC(const unsigned char* in, unsigned int inLen, const unsigned char* key, const unsigned char* iv, unsigned char* out);
     int DecryptCBC(const unsigned char* in, unsigned int inLen, const unsigned char* key, const unsigned char* iv, unsigned char* out);
 
     void printHexArray(unsigned char a[], unsigned int n);

@@ -40,6 +40,7 @@ If you want to have clang-14 installed on Mac, run these additional commands:
 brew install llvm@14
 sudo ln -s $(brew --prefix llvm@14)/bin/clang /usr/local/bin/clang-14
 sudo ln -s $(brew --prefix llvm@14)/bin/clang++ /usr/local/bin/clang++-14
+sudo ln -s $(brew --prefix llvm@14)/bin/clang-format /usr/local/bin/clang-format-14
 ```
 
 ## Build, Test, Install
@@ -56,11 +57,13 @@ make test
 make install
 ```
 
-You can build a docker image containing the necessary tools and dependencies and then use that to build and test the SDK:
+You can build a docker image containing the necessary tools and dependencies and then use that to build and test the SDK.
 
 ```
 docker build -t uid2_client_cpp_devenv
-docker run -it -v "$PWD:$PWD" -u $(id -u ${USER}):$(id -g ${USER}) -w "$PWD" uid2-client-cpp-build ./tools/build.sh
+docker run -it --rm -v "$PWD:$PWD" -u $(id -u ${USER}):$(id -g ${USER}) -w "$PWD" uid2-client-cpp-build ./tools/build.sh
+# or
+./tools/devenv.sh ./tools/build.sh
 ```
 
 ## Usage
@@ -77,4 +80,13 @@ For an example, see [app/example.cpp](app/example.cpp). To run the example appli
 # ./build/app/example <base-url> <api-key> <secret-key> <advertising-token>
 # For example:
 ./build/app/example https://operator-integ.uidapi.com test-id-reader-key your-secret-key "AgAAAANz...YgSCA=="
+```
+
+## Working on codebase
+
+The code is expected to be formatted according to clang-format rules specified at the root of the project.
+Most modern IDEs should pick that up automatically. To reformat all the code, run (requires docker):
+
+```
+./tools/devenv.sh ./tools/format.sh --fix
 ```

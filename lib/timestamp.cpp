@@ -2,10 +2,9 @@
 
 #include <chrono>
 
-namespace uid2
+namespace uid2 {
+Timestamp Timestamp::Now()
 {
-	Timestamp Timestamp::Now()
-	{
-		return Timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-	}
+    return Timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 }
+}  // namespace uid2

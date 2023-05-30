@@ -1,8 +1,8 @@
-#include <uid2/uid2client.h>
-
 #include "base64.h"
 #include "key.h"
 #include "uid2tokengenerator.h"
+
+#include <uid2/uid2client.h>
 
 #include <gtest/gtest.h>
 
@@ -19,8 +19,10 @@ static std::vector<std::uint8_t> Base64Decode(const std::string& str);
 static const std::int64_t MASTER_KEY_ID = 164;
 static const std::int64_t SITE_KEY_ID = 165;
 static const int SITE_ID = 9000;
-static const std::uint8_t MASTER_SECRET[] = { 139, 37, 241, 173, 18, 92, 36, 232, 165, 168, 23, 18, 38, 195, 123, 92, 160, 136, 185, 40, 91, 173, 165, 221, 168, 16, 169, 164, 38, 139, 8, 155 };
-static const std::uint8_t SITE_SECRET[] = { 32, 251, 7, 194, 132, 154, 250, 86, 202, 116, 104, 29, 131, 192, 139, 215, 48, 164, 11, 65, 226, 110, 167, 14, 108, 51, 254, 125, 65, 24, 23, 133 };
+static const std::uint8_t MASTER_SECRET[] = {139, 37,  241, 173, 18, 92,  36,  232, 165, 168, 23,  18,  38, 195, 123, 92,
+                                             160, 136, 185, 40,  91, 173, 165, 221, 168, 16,  169, 164, 38, 139, 8,   155};
+static const std::uint8_t SITE_SECRET[] = {32, 251, 7,  194, 132, 154, 250, 86, 202, 116, 104, 29,  131, 192, 139, 215,
+                                           48, 164, 11, 65,  226, 110, 167, 14, 108, 51,  254, 125, 65,  24,  23,  133};
 static const Timestamp NOW = Timestamp::Now();
 static const Key MASTER_KEY{MASTER_KEY_ID, -1, -1, NOW.AddDays(-1), NOW, NOW.AddDays(1), GetMasterSecret()};
 static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, -1, NOW.AddDays(-10), NOW.AddDays(-9), NOW.AddDays(1), GetSiteSecret()};
@@ -80,8 +82,8 @@ TEST(EncryptionTestsV2, InvalidPayload)
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
     const auto advertisingToken = GenerateUid2TokenV2(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY);
-    EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, advertisingToken.size()-1), NOW).GetStatus());
-    EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, advertisingToken.size()-4), NOW).GetStatus());
+    EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, advertisingToken.size() - 1), NOW).GetStatus());
+    EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, advertisingToken.size() - 4), NOW).GetStatus());
     EXPECT_EQ(DecryptionStatus::INVALID_PAYLOAD, client.Decrypt(advertisingToken.substr(0, 4), NOW).GetStatus());
 }
 
@@ -182,17 +184,15 @@ std::string KeySetToJson(const std::vector<Key>& keys)
     std::stringstream ss;
     ss << "{\"body\": [";
     bool needComma = false;
-    for (const auto& k : keys)
-    {
-        if (!needComma) needComma = true;
-        else ss << ", ";
+    for (const auto& k : keys) {
+        if (!needComma)
+            needComma = true;
+        else
+            ss << ", ";
 
-        ss << "{\"id\": " << k.id
-           << ", \"site_id\": " << k.siteId
-           << ", \"created\": " << k.created.GetEpochSecond()
-           << ", \"activates\": " << k.activates.GetEpochSecond()
-           << ", \"expires\": " << k.expires.GetEpochSecond()
-           << ", \"secret\": \"" << macaron::Base64::Encode(k.secret) << "\""
+        ss << "{\"id\": " << k.id << ", \"site_id\": " << k.siteId << ", \"created\": " << k.created.GetEpochSecond()
+           << ", \"activates\": " << k.activates.GetEpochSecond() << ", \"expires\": " << k.expires.GetEpochSecond() << ", \"secret\": \""
+           << macaron::Base64::Encode(k.secret) << "\""
            << "}";
     }
     ss << "]}";
