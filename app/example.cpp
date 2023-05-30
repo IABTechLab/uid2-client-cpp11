@@ -24,7 +24,7 @@ static void ExampleBasic(const std::string& baseUrl, const std::string& apiKey, 
 		return;
 	}
 
-	const auto result = client->Decrypt(adToken, Timestamp::Now());
+	const auto result = client->Decrypt(adToken);
 	std::cout << "DecryptedSuccess=" << result.IsSuccess() << " Status=" << (int)result.GetStatus() << "\n";
 	std::cout << "UID=" << result.GetUid() << "\n";
 	std::cout << "EstablishedAt=" << result.GetEstablished().GetEpochSecond() << "\n";
@@ -49,7 +49,7 @@ static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& ap
 
 	for (int i = 0; i < 5; ++i)
 	{
-		const auto result = client->Decrypt(adToken, Timestamp::Now());
+		const auto result = client->Decrypt(adToken);
 		std::cout << "DecryptSuccess=" << result.IsSuccess() << " Status=" << (int)result.GetStatus() << " UID=" << result.GetUid() << "\n";
 		std::cout.flush();
 		std::this_thread::sleep_for(std::chrono::seconds(5));

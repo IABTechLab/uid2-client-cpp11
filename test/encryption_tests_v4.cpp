@@ -275,12 +275,7 @@ TEST(EncryptDataTestsV4, RawUidProducesCorrectIdentityTypeInToken)
 std::string KeySetToJson(const std::vector<Key> &keys)
 {
     std::stringstream ss;
-    ss << "{\"body\": {";
-    ss << "\"caller_site_id\": " << SITE_ID << ",";
-    ss << "\"master_keyset_id\": " << MASTER_KEYSET_ID << ",";
-    ss << "\"default_keyset_id\": " << DEFAULT_KEYSET_ID << ",";
-    ss << "\"token_expiry_seconds\": " << TOKEN_EXPIRY_SECONDS << ",";
-    ss << "\"keys\": [";
+    ss << "{\"body\": [";
     bool needComma = false;
     for (const auto &k: keys) {
         if (!needComma) needComma = true;
@@ -294,7 +289,7 @@ std::string KeySetToJson(const std::vector<Key> &keys)
            << ", \"secret\": \"" << macaron::Base64::Encode(k.secret) << "\""
            << "}";
     }
-    ss << "]}}";
+    ss << "]}";
     return ss.str();
 }
 
@@ -486,8 +481,7 @@ KeySetToJsonForSharingWithHeader(std::string defaultKeyset, int callerSiteId, co
         if (!needComma) needComma = true;
         else ss << ", ";
 
-        ss << "{\"id\": " << k.id
-           << ", \"site_id\": " << k.siteId;
+        ss << "{\"id\": " << k.id;
         if (k.keysetId > 0) {
             ss << ", \"keyset_id\": " << k.keysetId;
         }
