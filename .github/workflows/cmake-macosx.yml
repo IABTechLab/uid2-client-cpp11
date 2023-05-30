@@ -1,0 +1,20 @@
+name: CMake Mac
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        compiler: [clang]
+        build_type: [debug, release]
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Dev environment
+      run: |
+        ${{github.workspace}}/tools/install-macosx-deps.sh
+
+    - name: Build and Test
+      run: ${{github.workspace}}/tools/build.sh ${{matrix.build_type}}-${{matrix.compiler}}

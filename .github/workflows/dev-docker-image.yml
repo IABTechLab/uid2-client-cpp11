@@ -1,0 +1,14 @@
+name: Dev Docker Image
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build development docker image
+      uses: docker/build-push-action@v4
+      with:
+        push: false

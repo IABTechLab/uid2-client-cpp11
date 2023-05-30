@@ -1,0 +1,21 @@
+name: CMake Ubuntu
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        compiler: [clang14, gcc11]
+        build_type: [debug, release]
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Dev environment
+      run: |
+        sudo ${{github.workspace}}/tools/install-ubuntu-devtools.sh
+        sudo ${{github.workspace}}/tools/install-ubuntu-deps.sh
+
+    - name: Build and Test
+      run: ${{github.workspace}}/tools/build.sh ${{matrix.build_type}}-${{matrix.compiler}}
