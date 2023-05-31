@@ -2,7 +2,7 @@
 
 #include "base64.h"
 #include "key.h"
-#include "uid2/uid2_token_generator.h"
+#include "uid2tokengenerator.h"
 
 #include <gtest/gtest.h>
 
