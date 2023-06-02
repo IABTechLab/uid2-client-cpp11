@@ -16,9 +16,7 @@ namespace uid2 {
         /// Refreshes encryption keys. Call this regularly (eg every hour) to ensure keys are up to date.
         virtual RefreshResult Refresh() = 0;
 
-        DecryptionResult Decrypt(const std::string &token) { return Decrypt(token, Timestamp::Now()); }
-
-        virtual DecryptionResult Decrypt(const std::string &token, Timestamp now) = 0;
+        virtual DecryptionResult Decrypt(const std::string &token) = 0;
 
         virtual EncryptionResult Encrypt(const std::string &uid) = 0;
 
@@ -38,8 +36,9 @@ namespace uid2 {
 
         RefreshResult Refresh() override;
 
-        using IUID2Client::Decrypt;
-        DecryptionResult Decrypt(const std::string &token, Timestamp now) override;
+        DecryptionResult Decrypt(const std::string &token) override;
+
+        DecryptionResult Decrypt(const std::string &token, Timestamp now);
 
         EncryptionResult Encrypt(const std::string &uid) override;
 

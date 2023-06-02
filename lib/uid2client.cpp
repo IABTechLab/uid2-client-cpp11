@@ -72,6 +72,11 @@ namespace uid2 {
         return mImpl->RefreshJson(jsonResponse);
     }
 
+    DecryptionResult UID2Client::Decrypt(const std::string &token)
+    {
+        return Decrypt(token, Timestamp::Now());
+    }
+
     DecryptionResult UID2Client::Decrypt(const std::string &token, Timestamp now)
     {
         // hold reference to container so it's not disposed by refresh
