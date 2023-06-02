@@ -185,14 +185,15 @@ std::string KeySetToJson(const std::vector<Key>& keys)
     ss << "{\"body\": [";
     bool needComma = false;
     for (const auto& k : keys) {
-        if (!needComma)
+        if (!needComma) {
             needComma = true;
-        else
+        } else {
             ss << ", ";
+        }
 
-        ss << "{\"id\": " << k.id << ", \"site_id\": " << k.siteId << ", \"created\": " << k.created.GetEpochSecond()
-           << ", \"activates\": " << k.activates.GetEpochSecond() << ", \"expires\": " << k.expires.GetEpochSecond() << ", \"secret\": \""
-           << macaron::Base64::Encode(k.secret) << "\""
+        ss << R"({"id": )" << k.id_ << R"(, "site_id": )" << k.siteId_ << R"(, "created": )" << k.created_.GetEpochSecond() << R"(, "activates": )"
+           << k.activates_.GetEpochSecond() << R"(, "expires": )" << k.expires_.GetEpochSecond() << R"(, "secret": ")" << macaron::Base64::Encode(k.secret_)
+           << "\""
            << "}";
     }
     ss << "]}";
@@ -201,17 +202,17 @@ std::string KeySetToJson(const std::vector<Key>& keys)
 
 std::vector<std::uint8_t> GetMasterSecret()
 {
-    return std::vector<std::uint8_t>(MASTER_SECRET, MASTER_SECRET + sizeof(MASTER_SECRET));
+    return {MASTER_SECRET, MASTER_SECRET + sizeof(MASTER_SECRET)};
 }
 
 std::vector<std::uint8_t> GetSiteSecret()
 {
-    return std::vector<std::uint8_t>(SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET));
+    return {SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET)};
 }
 
 std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v)
 {
-    return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);
+    return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);  // NOLINT
 }
 
 std::vector<std::uint8_t> Base64Decode(const std::string& str)

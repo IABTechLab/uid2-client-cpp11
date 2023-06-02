@@ -11,105 +11,110 @@ class KeyContainer {
 public:
     KeyContainer() = default;
 
-    KeyContainer(int _callerSiteId, int _masterKeysetId, int _defaultKeysetId, long _tokenExpirySeconds)
-        : callerSiteId(_callerSiteId), masterKeySetId(_masterKeysetId), defaultKeySetId(_defaultKeysetId), tokenExpirySeconds(_tokenExpirySeconds)
+    KeyContainer(int callerSiteId, int masterKeysetId, int defaultKeysetId, std::int64_t tokenExpirySeconds)
+        : callerSiteId_(callerSiteId), masterKeySetId_(masterKeysetId), defaultKeySetId_(defaultKeysetId), tokenExpirySeconds_(tokenExpirySeconds)
     {
     }
 
+    KeyContainer(const KeyContainer&) = delete;
+    KeyContainer& operator=(const KeyContainer&) = delete;
+
     void Add(Key&& key)
     {
-        auto& k = idMap[key.id];
+        auto& k = idMap_[key.id_];
         k = std::move(key);
-        if (k.siteId > 0)
-            keysBySite[k.siteId].push_back(&k);
-        if (k.keysetId != NO_KEYSET)
-            keysByKeyset[k.keysetId].push_back(&k);
-        if (latestKeyExpiry < k.expires)
-            latestKeyExpiry = k.expires;
+        if (k.siteId_ > 0) {
+            keysBySite_[k.siteId_].push_back(&k);
+        }
+        if (k.keysetId_ != NO_KEYSET) {
+            keysByKeyset_[k.keysetId_].push_back(&k);
+        }
+        if (latestKeyExpiry_ < k.expires_) {
+            latestKeyExpiry_ = k.expires_;
+        }
     }
 
     void Sort()
     {
-        const auto end = keysBySite.end();
-        for (auto it = keysBySite.begin(); it != end; ++it) {
+        const auto end = keysBySite_.end();
+        for (auto it = keysBySite_.begin(); it != end; ++it) {
             auto& siteKeys = it->second;
-            std::sort(siteKeys.begin(), siteKeys.end(), [](const Key* a, const Key* b) { return a->activates < b->activates; });
+            std::sort(siteKeys.begin(), siteKeys.end(), [](const Key* a, const Key* b) { return a->activates_ < b->activates_; });
         }
     }
 
     const Key* Get(std::int64_t id) const
     {
-        const auto it = idMap.find(id);
-        return it == idMap.end() ? nullptr : &it->second;
+        const auto it = idMap_.find(id);
+        return it == idMap_.end() ? nullptr : &it->second;
     }
 
     const Key* GetActiveSiteKey(int siteId, Timestamp now) const
     {
-        const auto itK = keysBySite.find(siteId);
-        if (itK == keysBySite.end() || itK->second.empty())
+        const auto itK = keysBySite_.find(siteId);
+        if (itK == keysBySite_.end() || itK->second.empty()) {
             return nullptr;
+        }
         const auto& siteKeys = itK->second;
-        auto it = std::upper_bound(siteKeys.begin(), siteKeys.end(), now, [](Timestamp ts, const Key* k) { return ts < k->activates; });
+        auto it = std::upper_bound(siteKeys.begin(), siteKeys.end(), now, [](Timestamp ts, const Key* k) { return ts < k->activates_; });
         while (it != siteKeys.begin()) {
             --it;
-            const auto key = *it;
-            if (key->IsActive(now))
+            const auto* const key = *it;
+            if (key->IsActive(now)) {
                 return key;
+            }
         }
         return nullptr;
     }
 
     const Key* GetActiveKeysetKey(int keysetId, Timestamp now) const
     {
-        const auto itK = keysByKeyset.find(keysetId);
-        if (itK == keysByKeyset.end() || itK->second.empty())
+        const auto itK = keysByKeyset_.find(keysetId);
+        if (itK == keysByKeyset_.end() || itK->second.empty()) {
             return nullptr;
+        }
         const auto& siteKeys = itK->second;
-        auto it = std::upper_bound(siteKeys.begin(), siteKeys.end(), now, [](Timestamp ts, const Key* k) { return ts < k->activates; });
+        auto it = std::upper_bound(siteKeys.begin(), siteKeys.end(), now, [](Timestamp ts, const Key* k) { return ts < k->activates_; });
         while (it != siteKeys.begin()) {
             --it;
-            const auto key = *it;
-            if (key->IsActive(now))
+            const auto* const key = *it;
+            if (key->IsActive(now)) {
                 return key;
+            }
         }
         return nullptr;
     }
 
-    inline bool IsValid(Timestamp now) const { return latestKeyExpiry > now; }
+    inline bool IsValid(Timestamp now) const { return latestKeyExpiry_ > now; }
 
-    int getCallerSiteId() const { return callerSiteId; }
+    int GetCallerSiteId() const { return callerSiteId_; }
 
-    void setCallerSiteId(int callerSiteId) { KeyContainer::callerSiteId = callerSiteId; }
+    void SetCallerSiteId(int callerSiteId) { KeyContainer::callerSiteId_ = callerSiteId; }
 
-    int getMasterKeySetId() const { return masterKeySetId; }
+    int GetMasterKeySetId() const { return masterKeySetId_; }
 
-    const Key* getMasterKey(Timestamp now) const { return GetActiveKeysetKey(masterKeySetId, now); }
+    const Key* GetMasterKey(Timestamp now) const { return GetActiveKeysetKey(masterKeySetId_, now); }
 
-    void setMasterKeySetId(int masterKeySetId) { KeyContainer::masterKeySetId = masterKeySetId; }
+    void SetMasterKeySetId(int masterKeySetId) { KeyContainer::masterKeySetId_ = masterKeySetId; }
 
-    int getDefaultKeySetId() const { return defaultKeySetId; }
+    int GetDefaultKeySetId() const { return defaultKeySetId_; }
 
-    void setDefaultKeySetId(int defaultKeySetId) { KeyContainer::defaultKeySetId = defaultKeySetId; }
+    void SetDefaultKeySetId(int defaultKeySetId) { KeyContainer::defaultKeySetId_ = defaultKeySetId; }
 
-    const Key* getDefaultKey(Timestamp now) const { return GetActiveKeysetKey(defaultKeySetId, now); }
+    const Key* GetDefaultKey(Timestamp now) const { return GetActiveKeysetKey(defaultKeySetId_, now); }
 
-    int getTokenExpirySeconds() const { return tokenExpirySeconds; }
+    std::int64_t GetTokenExpirySeconds() const { return tokenExpirySeconds_; }
 
-    void setTokenExpirySeconds(int64_t tokenExpirySeconds) { KeyContainer::tokenExpirySeconds = tokenExpirySeconds; }
-
-private:
-    std::unordered_map<std::int64_t, Key> idMap;
-    std::unordered_map<int, std::vector<const Key*>> keysBySite;
-    std::unordered_map<int, std::vector<const Key*>> keysByKeyset;
-    Timestamp latestKeyExpiry;
-    int callerSiteId = -1;
-    int masterKeySetId = -1;
-    int defaultKeySetId = -1;
-    int64_t tokenExpirySeconds = -1;
+    void SetTokenExpirySeconds(int64_t tokenExpirySeconds) { KeyContainer::tokenExpirySeconds_ = tokenExpirySeconds; }
 
 private:
-    KeyContainer(const KeyContainer&) = delete;
-
-    KeyContainer& operator=(const KeyContainer&) = delete;
+    std::unordered_map<std::int64_t, Key> idMap_;
+    std::unordered_map<int, std::vector<const Key*>> keysBySite_;
+    std::unordered_map<int, std::vector<const Key*>> keysByKeyset_;
+    Timestamp latestKeyExpiry_;
+    int callerSiteId_ = -1;
+    int masterKeySetId_ = -1;
+    int defaultKeySetId_ = -1;
+    std::int64_t tokenExpirySeconds_ = -1;
 };
 }  // namespace uid2

@@ -10,7 +10,7 @@
 
 using namespace uid2;
 
-#define TO_VECTOR(d) (std::vector<std::uint8_t>(d, d + sizeof(d)))
+#define TO_VECTOR(d) (std::vector<std::uint8_t>(d, (d) + sizeof(d)))
 static std::vector<std::uint8_t> GetMasterSecret();
 static std::vector<std::uint8_t> GetSiteSecret();
 static std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v);
@@ -142,7 +142,7 @@ TEST(EncryptDataTestsV3, SpecificSiteId)
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({SITE_KEY}));
-    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(SITE_KEY.siteId));
+    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(SITE_KEY.siteId_));
     EXPECT_TRUE(encrypted.IsSuccess());
     EXPECT_EQ(EncryptionStatus::SUCCESS, encrypted.GetStatus());
     client.RefreshJson(KeySetToJson({SITE_KEY}));
@@ -272,7 +272,7 @@ TEST(EncryptDataTestsV3, KeyExpiredCustomNow)
 {
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithKey(SITE_KEY).WithNow(SITE_KEY.expires));
+    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithKey(SITE_KEY).WithNow(SITE_KEY.expires_));
     EXPECT_FALSE(encrypted.IsSuccess());
     EXPECT_EQ(EncryptionStatus::KEY_INACTIVE, encrypted.GetStatus());
 }
@@ -281,7 +281,7 @@ TEST(EncryptDataTestsV3, KeyInactiveCustomNow)
 {
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
-    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithKey(SITE_KEY).WithNow(SITE_KEY.activates.AddSeconds(-1)));
+    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithKey(SITE_KEY).WithNow(SITE_KEY.activates_.AddSeconds(-1)));
     EXPECT_FALSE(encrypted.IsSuccess());
     EXPECT_EQ(EncryptionStatus::KEY_INACTIVE, encrypted.GetStatus());
 }
@@ -301,9 +301,9 @@ TEST(EncryptDataTestsV3, SiteKeyExpired)
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     auto key = SITE_KEY;
-    key.expires = NOW.AddDays(-1);
+    key.expires_ = NOW.AddDays(-1);
     client.RefreshJson(KeySetToJson({MASTER_KEY, key}));
-    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(key.siteId));
+    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(key.siteId_));
     EXPECT_FALSE(encrypted.IsSuccess());
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
@@ -313,9 +313,9 @@ TEST(EncryptDataTestsV3, SiteKeyInactive)
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     auto key = SITE_KEY;
-    key.activates = NOW.AddDays(1);
+    key.activates_ = NOW.AddDays(1);
     client.RefreshJson(KeySetToJson({MASTER_KEY, key}));
-    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(key.siteId));
+    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(key.siteId_));
     EXPECT_FALSE(encrypted.IsSuccess());
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
@@ -325,7 +325,8 @@ TEST(EncryptDataTestsV3, SiteKeyInactiveCustomNow)
     const std::uint8_t data[] = {1, 2, 3, 4, 5, 6};
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
-    const auto encrypted = client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(SITE_KEY.siteId).WithNow(SITE_KEY.activates.AddSeconds(-1)));
+    const auto encrypted =
+        client.EncryptData(EncryptionDataRequest(data, sizeof(data)).WithSiteId(SITE_KEY.siteId_).WithNow(SITE_KEY.activates_.AddSeconds(-1)));
     EXPECT_FALSE(encrypted.IsSuccess());
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
@@ -423,14 +424,15 @@ std::string KeySetToJson(const std::vector<Key>& keys)
     ss << "{\"body\": [";
     bool needComma = false;
     for (const auto& k : keys) {
-        if (!needComma)
+        if (!needComma) {
             needComma = true;
-        else
+        } else {
             ss << ", ";
+        }
 
-        ss << "{\"id\": " << k.id << ", \"site_id\": " << k.siteId << ", \"created\": " << k.created.GetEpochSecond()
-           << ", \"activates\": " << k.activates.GetEpochSecond() << ", \"expires\": " << k.expires.GetEpochSecond() << ", \"secret\": \""
-           << macaron::Base64::Encode(k.secret) << "\""
+        ss << R"({"id": )" << k.id_ << R"(, "site_id": )" << k.siteId_ << R"(, "created": )" << k.created_.GetEpochSecond() << R"(, "activates": )"
+           << k.activates_.GetEpochSecond() << R"(, "expires": )" << k.expires_.GetEpochSecond() << R"(, "secret": ")" << macaron::Base64::Encode(k.secret_)
+           << "\""
            << "}";
     }
     ss << "]}";
@@ -439,17 +441,17 @@ std::string KeySetToJson(const std::vector<Key>& keys)
 
 std::vector<std::uint8_t> GetMasterSecret()
 {
-    return std::vector<std::uint8_t>(MASTER_SECRET, MASTER_SECRET + sizeof(MASTER_SECRET));
+    return {MASTER_SECRET, MASTER_SECRET + sizeof(MASTER_SECRET)};
 }
 
 std::vector<std::uint8_t> GetSiteSecret()
 {
-    return std::vector<std::uint8_t>(SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET));
+    return {SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET)};
 }
 
 std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v)
 {
-    return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);
+    return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);  // NOLINT
 }
 
 std::vector<std::uint8_t> Base64Decode(const std::string& str)

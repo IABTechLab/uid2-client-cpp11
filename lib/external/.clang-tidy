@@ -1,0 +1,3 @@
+# Disable all checks in this folder.
+# Unfortunately at least one check needs to be enabled.
+Checks: cppcoreguidelines-slicing

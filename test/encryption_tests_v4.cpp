@@ -12,7 +12,7 @@
 
 using namespace uid2;
 
-#define TO_VECTOR(d) (std::vector<std::uint8_t>(d, d + sizeof(d)))
+#define TO_VECTOR(d) (std::vector<std::uint8_t>(d, (d) + sizeof(d)))
 
 static std::vector<std::uint8_t> GetMasterSecret();
 
@@ -20,13 +20,13 @@ static std::vector<std::uint8_t> GetSiteSecret();
 
 static std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v);
 
-static IdentityType GetTokenIdentityType(std::string rawUid, UID2Client& client);
+static IdentityType GetTokenIdentityType(const std::string& rawUid, UID2Client& client);
 
 static std::string KeySetToJson(const std::vector<Key>& keys);
 
 static std::string KeySetToJsonForSharing(const std::vector<Key>& keys);
 
-static std::string KeySetToJsonForSharingWithHeader(std::string, int, const std::vector<Key>& keys);
+static std::string KeySetToJsonForSharingWithHeader(const std::string& defaultKeyset, int callerSiteId, const std::vector<Key>& keys);
 
 static std::vector<std::uint8_t> Base64Decode(const std::string& str);
 
@@ -47,7 +47,8 @@ static const Key SITE_KEY{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW.AddDays(-
 static const std::string EXAMPLE_UID = "ywsvDNINiZOVSsfkHpLpSJzXzhr6Jx9Z/4Q0+lsEUvM=";
 static const std::string CLIENT_SECRET = "ioG3wKxAokmp+rERx6A4kM/13qhyolUXIu14WN16Spo=";
 
-void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>& rawInput, const std::string& expectedBase64URLStr);
+/// NOLINTNEXTLINE(readability-identifier-naming)
+static void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>& rawInput, const std::string& expectedBase64URLStr);
 
 // unit tests to ensure the base64url encoding and decoding are identical in all supported
 // uid2 client sdks in different programming languages
@@ -69,11 +70,11 @@ TEST(CrossPlatformConsistencyCheck, Base64UrlTest)
 
 void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>& rawInput, const std::string& expectedBase64URLStr)
 {
-    int rawInputLen = rawInput.size();
+    const auto rawInputLen = static_cast<int>(rawInput.size());
     // the Base64 equivalent is "/+CI/+6ZmQ=="
     // and we want the Base64URL encoded to remove the '=' padding
     std::vector<std::uint8_t> payload(rawInputLen);
-    BigEndianByteWriter writer(payload.data(), payload.size());
+    BigEndianByteWriter writer(payload.data(), static_cast<int>(payload.size()));
     for (int i = 0; i < rawInputLen; i++) {
         writer.WriteByte(rawInput[i]);
     }
@@ -248,15 +249,15 @@ TEST(EncryptDataTestsV4, RawUidProducesCorrectIdentityTypeInToken)
 
     // see UID2-79+Token+and+ID+format+v3 . Also note EUID does not support v2 or phone
     EXPECT_EQ(
-        IdentityType::Email,
+        IdentityType::EMAIL,
         GetTokenIdentityType(
             "Q4bGug8t1xjsutKLCNjnb5fTlXSvIQukmahYDJeLBtk=",
             client));  // v2 +12345678901. Although this was generated from a phone number, it's a v2 raw UID which doesn't encode this information, so token
                        // assumes email by default.
-    EXPECT_EQ(IdentityType::Phone, GetTokenIdentityType("BEOGxroPLdcY7LrSiwjY52+X05V0ryELpJmoWAyXiwbZ", client));  // v3 +12345678901
-    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("oKg0ZY9ieD/CGMEjAA0kcq+8aUbLMBG0MgCT3kWUnJs=", client));  // v2 test@example.com
-    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("AKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 test@example.com
-    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("EKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 EUID test@example.com
+    EXPECT_EQ(IdentityType::PHONE, GetTokenIdentityType("BEOGxroPLdcY7LrSiwjY52+X05V0ryELpJmoWAyXiwbZ", client));  // v3 +12345678901
+    EXPECT_EQ(IdentityType::EMAIL, GetTokenIdentityType("oKg0ZY9ieD/CGMEjAA0kcq+8aUbLMBG0MgCT3kWUnJs=", client));  // v2 test@example.com
+    EXPECT_EQ(IdentityType::EMAIL, GetTokenIdentityType("AKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 test@example.com
+    EXPECT_EQ(IdentityType::EMAIL, GetTokenIdentityType("EKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 EUID test@example.com
 }
 
 std::string KeySetToJson(const std::vector<Key>& keys)
@@ -265,14 +266,15 @@ std::string KeySetToJson(const std::vector<Key>& keys)
     ss << "{\"body\": [";
     bool needComma = false;
     for (const auto& k : keys) {
-        if (!needComma)
+        if (!needComma) {
             needComma = true;
-        else
+        } else {
             ss << ", ";
+        }
 
-        ss << "{\"id\": " << k.id << ", \"site_id\": " << k.siteId << ", \"created\": " << k.created.GetEpochSecond()
-           << ", \"activates\": " << k.activates.GetEpochSecond() << ", \"expires\": " << k.expires.GetEpochSecond() << ", \"secret\": \""
-           << macaron::Base64::Encode(k.secret) << "\""
+        ss << R"({"id": )" << k.id_ << R"(, "site_id": )" << k.siteId_ << R"(, "created": )" << k.created_.GetEpochSecond() << R"(, "activates": )"
+           << k.activates_.GetEpochSecond() << R"(, "expires": )" << k.expires_.GetEpochSecond() << R"(, "secret": ")" << macaron::Base64::Encode(k.secret_)
+           << "\""
            << "}";
     }
     ss << "]}";
@@ -320,8 +322,7 @@ TEST(SharingTests, SharingTokenIsV4)
     client.RefreshJson(json);
     auto advertisingToken = client.Encrypt(EXAMPLE_UID, NOW).GetEncryptedData();
 
-    bool containsBase64SpecialChars =
-        advertisingToken.find("+") == std::string::npos || advertisingToken.find("/") == std::string::npos || advertisingToken.find("=") == std::string::npos;
+    const bool containsBase64SpecialChars = advertisingToken.find_first_of("+/=") == std::string::npos;
     EXPECT_TRUE(containsBase64SpecialChars);
 }
 
@@ -354,22 +355,23 @@ TEST(SharingTests, RawUidProducesCorrectIdentityTypeInToken)
     client.RefreshJson(json);
 
     EXPECT_EQ(
-        IdentityType::Email,
+        IdentityType::EMAIL,
         GetTokenIdentityType(
             "Q4bGug8t1xjsutKLCNjnb5fTlXSvIQukmahYDJeLBtk=",
             client));  // v2 +12345678901. Although this was generated from a phone number, it's a v2 raw UID which doesn't encode this information, so token
                        // assumes email by default.
-    EXPECT_EQ(IdentityType::Phone, GetTokenIdentityType("BEOGxroPLdcY7LrSiwjY52+X05V0ryELpJmoWAyXiwbZ", client));  // v3 +12345678901
-    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("oKg0ZY9ieD/CGMEjAA0kcq+8aUbLMBG0MgCT3kWUnJs=", client));  // v2 test@example.com
-    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("AKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 test@example.com
-    EXPECT_EQ(IdentityType::Email, GetTokenIdentityType("EKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 EUID test@example.com
+    EXPECT_EQ(IdentityType::PHONE, GetTokenIdentityType("BEOGxroPLdcY7LrSiwjY52+X05V0ryELpJmoWAyXiwbZ", client));  // v3 +12345678901
+    EXPECT_EQ(IdentityType::EMAIL, GetTokenIdentityType("oKg0ZY9ieD/CGMEjAA0kcq+8aUbLMBG0MgCT3kWUnJs=", client));  // v2 test@example.com
+    EXPECT_EQ(IdentityType::EMAIL, GetTokenIdentityType("AKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 test@example.com
+    EXPECT_EQ(IdentityType::EMAIL, GetTokenIdentityType("EKCoNGWPYng/whjBIwANJHKvvGlGyzARtDIAk95FlJyb", client));  // v3 EUID test@example.com
 }
 
 TEST(SharingTests, MultipleKeysPerKeyset)
 {
-    Key masterKey2{264, -1, MASTER_KEYSET_ID, NOW.AddSeconds(-2 * 60 * 60), NOW.AddSeconds(-1 * 60 * 60), NOW.AddSeconds(-1 * 60 * 60), GetMasterSecret()};
+    Key masterKey2{
+        264, -1, MASTER_KEYSET_ID, NOW.AddSeconds(-2LL * 60 * 60), NOW.AddSeconds(-1LL * 60 * 60), NOW.AddSeconds(-1LL * 60 * 60), GetMasterSecret()};
     Key siteKey2{
-        265, SITE_ID, DEFAULT_KEYSET_ID, NOW.AddSeconds(-10 * 24 * 60 * 60), NOW.AddSeconds(-1 * 60 * 60), NOW.AddSeconds(-1 * 60 * 60), GetSiteSecret()};
+        265, SITE_ID, DEFAULT_KEYSET_ID, NOW.AddSeconds(-10LL * 24 * 60 * 60), NOW.AddSeconds(-1LL * 60 * 60), NOW.AddSeconds(-1LL * 60 * 60), GetSiteSecret()};
 
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
     auto json = KeySetToJsonForSharing({MASTER_KEY, masterKey2, SITE_KEY, siteKey2});
@@ -404,7 +406,7 @@ TEST(SharingTests, CannotEncryptIfTheresNoDefaultKeysetHeader)
 TEST(SharingTests, ExpiryInTokenMatchesExpiryInResponse)
 {
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
-    auto json = KeySetToJsonForSharingWithHeader("\"default_keyset_id\": 99999, \"token_expiry_seconds\": 2,", SITE_ID, {MASTER_KEY, SITE_KEY});
+    auto json = KeySetToJsonForSharingWithHeader(R"("default_keyset_id": 99999, "token_expiry_seconds": 2,)", SITE_ID, {MASTER_KEY, SITE_KEY});
     client.RefreshJson(json);
 
     auto encryptedAt = NOW;
@@ -422,7 +424,7 @@ TEST(SharingTests, ExpiryInTokenMatchesExpiryInResponse)
 TEST(SharingTests, EncryptKeyExpired)
 {
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
-    Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1 * 24 * 60 * 60), MakeKeySecret(9)};
+    Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1LL * 24 * 60 * 60), MakeKeySecret(9)};
     client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
     auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
@@ -431,7 +433,7 @@ TEST(SharingTests, EncryptKeyExpired)
 TEST(SharingTests, EncryptKeyInactive)
 {
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
-    Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW.AddSeconds(1 * 24 * 60 * 60), NOW.AddSeconds(2 * 24 * 60 * 60), MakeKeySecret(9)};
+    Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW.AddSeconds(1LL * 24 * 60 * 60), NOW.AddSeconds(2LL * 24 * 60 * 60), MakeKeySecret(9)};
     client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
     auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
@@ -440,33 +442,34 @@ TEST(SharingTests, EncryptKeyInactive)
 TEST(SharingTests, EncryptSiteKeyExpired)
 {
     UID2Client client("endpoint", "authkey", CLIENT_SECRET, IdentityScope::UID2);
-    Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1 * 24 * 60 * 60), MakeKeySecret(9)};
+    Key key{SITE_KEY_ID, SITE_ID, DEFAULT_KEYSET_ID, NOW, NOW, NOW.AddSeconds(-1LL * 24 * 60 * 60), MakeKeySecret(9)};
     client.RefreshJson(KeySetToJsonForSharing({MASTER_KEY, key}));
     auto encrypted = client.Encrypt(EXAMPLE_UID, NOW);
     EXPECT_EQ(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY, encrypted.GetStatus());
 }
 
-std::string KeySetToJsonForSharingWithHeader(std::string defaultKeyset, int callerSiteId, const std::vector<Key>& keys)
+std::string KeySetToJsonForSharingWithHeader(const std::string& defaultKeyset, int callerSiteId, const std::vector<Key>& keys)
 {
     std::stringstream ss;
-    ss << "{\"body\": {";
-    ss << "\"caller_site_id\": " << callerSiteId << ",";
-    ss << "\"master_keyset_id\": " << MASTER_KEYSET_ID << ",";
+    ss << R"({"body": {)";
+    ss << R"("caller_site_id": )" << callerSiteId << ",";
+    ss << R"("master_keyset_id": )" << MASTER_KEYSET_ID << ",";
     ss << defaultKeyset;
-    ss << "\"keys\": [";
+    ss << R"("keys": [)";
     bool needComma = false;
     for (const auto& k : keys) {
-        if (!needComma)
+        if (!needComma) {
             needComma = true;
-        else
+        } else {
             ss << ", ";
-
-        ss << "{\"id\": " << k.id;
-        if (k.keysetId > 0) {
-            ss << ", \"keyset_id\": " << k.keysetId;
         }
-        ss << ", \"created\": " << k.created.GetEpochSecond() << ", \"activates\": " << k.activates.GetEpochSecond()
-           << ", \"expires\": " << k.expires.GetEpochSecond() << ", \"secret\": \"" << macaron::Base64::Encode(k.secret) << "\""
+
+        ss << R"({"id": )" << k.id_;
+        if (k.keysetId_ > 0) {
+            ss << R"(, "keyset_id": )" << k.keysetId_;
+        }
+        ss << R"(, "created": )" << k.created_.GetEpochSecond() << R"(, "activates": )" << k.activates_.GetEpochSecond() << R"(, "expires": )"
+           << k.expires_.GetEpochSecond() << R"(, "secret": ")" << macaron::Base64::Encode(k.secret_) << "\""
            << "}";
     }
     ss << "]}}";
@@ -475,36 +478,39 @@ std::string KeySetToJsonForSharingWithHeader(std::string defaultKeyset, int call
 
 std::string KeySetToJsonForSharing(const std::vector<Key>& keys)
 {
-    return KeySetToJsonForSharingWithHeader("\"default_keyset_id\": 99999,", SITE_ID, keys);
+    return KeySetToJsonForSharingWithHeader(R"("default_keyset_id": 99999,)", SITE_ID, keys);
 }
 
-IdentityType GetTokenIdentityType(std::string rawUid, UID2Client& client)
+IdentityType GetTokenIdentityType(const std::string& rawUid, UID2Client& client)
 {
     auto token = GenerateUid2TokenV4(rawUid, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
     EXPECT_EQ(rawUid, client.Decrypt(token, Timestamp::Now()).GetUid());
 
     char firstChar = token[0];
     if ('A' == firstChar || 'E' == firstChar)  // from UID2-79+Token+and+ID+format+v3
-        return IdentityType::Email;
-    else if ('F' == firstChar || 'B' == firstChar)
-        return IdentityType::Phone;
+    {
+        return IdentityType::EMAIL;
+    }
+    if ('F' == firstChar || 'B' == firstChar) {
+        return IdentityType::PHONE;
+    }
 
     throw "unknown IdentityType";
 }
 
 std::vector<std::uint8_t> GetMasterSecret()
 {
-    return std::vector<std::uint8_t>(MASTER_SECRET, MASTER_SECRET + sizeof(MASTER_SECRET));
+    return {MASTER_SECRET, MASTER_SECRET + sizeof(MASTER_SECRET)};
 }
 
 std::vector<std::uint8_t> GetSiteSecret()
 {
-    return std::vector<std::uint8_t>(SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET));
+    return {SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET)};
 }
 
 std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v)
 {
-    return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);
+    return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);  // NOLINT
 }
 
 std::vector<std::uint8_t> Base64Decode(const std::string& str)

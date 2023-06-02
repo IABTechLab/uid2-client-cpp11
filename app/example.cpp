@@ -12,7 +12,7 @@ static void StartExample(const std::string& desc)
     std::cout.flush();
 }
 
-static void ExampleBasic(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string adToken)
+static void ExampleBasic(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string& adToken)
 {
     StartExample("Basic keys refresh and decrypt token");
 
@@ -24,13 +24,13 @@ static void ExampleBasic(const std::string& baseUrl, const std::string& apiKey, 
     }
 
     const auto result = client->Decrypt(adToken);
-    std::cout << "DecryptedSuccess=" << result.IsSuccess() << " Status=" << (int)result.GetStatus() << "\n";
+    std::cout << "DecryptedSuccess=" << result.IsSuccess() << " Status=" << static_cast<int>(result.GetStatus()) << "\n";
     std::cout << "UID=" << result.GetUid() << "\n";
     std::cout << "EstablishedAt=" << result.GetEstablished().GetEpochSecond() << "\n";
     std::cout << "SiteId=" << result.GetSiteId() << "\n";
 }
 
-static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string adToken)
+static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string& adToken)
 {
     StartExample("Automatic background keys refresh");
 
@@ -46,7 +46,7 @@ static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& ap
 
     for (int i = 0; i < 5; ++i) {
         const auto result = client->Decrypt(adToken);
-        std::cout << "DecryptSuccess=" << result.IsSuccess() << " Status=" << (int)result.GetStatus() << " UID=" << result.GetUid() << "\n";
+        std::cout << "DecryptSuccess=" << result.IsSuccess() << " Status=" << static_cast<int>(result.GetStatus()) << " UID=" << result.GetUid() << "\n";
         std::cout.flush();
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
@@ -54,7 +54,7 @@ static void ExampleAutoRefresh(const std::string& baseUrl, const std::string& ap
     refreshThread.join();
 }
 
-static void ExampleEncryptDecryptData(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string adToken)
+static void ExampleEncryptDecryptData(const std::string& baseUrl, const std::string& apiKey, const std::string& secretKey, const std::string& adToken)
 {
     StartExample("Encrypt and Decrypt Data");
 
@@ -66,18 +66,20 @@ static void ExampleEncryptDecryptData(const std::string& baseUrl, const std::str
     }
 
     const std::string data = "Hello World!";
-    const auto encrypted = client->EncryptData(EncryptionDataRequest((const std::uint8_t*)data.data(), data.size()).WithAdvertisingToken(adToken));
+    const auto encrypted =
+        client->EncryptData(EncryptionDataRequest(reinterpret_cast<const std::uint8_t*>(data.data()), data.size()).WithAdvertisingToken(adToken));
     if (!encrypted.IsSuccess()) {
-        std::cout << "Failed to encrypt data: " << (int)encrypted.GetStatus() << "\n";
+        std::cout << "Failed to encrypt data: " << static_cast<int>(encrypted.GetStatus()) << "\n";
     } else {
         const auto decrypted = client->DecryptData(encrypted.GetEncryptedData());
         if (!decrypted.IsSuccess()) {
-            std::cout << "Failed to decrypt data: " << (int)decrypted.GetStatus() << "\n";
+            std::cout << "Failed to decrypt data: " << static_cast<int>(decrypted.GetStatus()) << "\n";
         } else {
             std::cout << "Original data: " << data << "\n";
             std::cout << "Encrypted: " << encrypted.GetEncryptedData() << "\n";
             std::cout << "Decrypted: ";
-            std::cout.write((const char*)decrypted.GetDecryptedData().data(), decrypted.GetDecryptedData().size());
+            std::cout.write(
+                reinterpret_cast<const char*>(decrypted.GetDecryptedData().data()), static_cast<std::streamsize>(decrypted.GetDecryptedData().size()));
             std::cout << "\n";
             std::cout << "Encrypted at: " << decrypted.GetEncryptedAt().GetEpochSecond() << "\n";
         }

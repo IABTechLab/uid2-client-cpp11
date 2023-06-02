@@ -30,7 +30,13 @@ class UID2Client : public IUID2Client {
 public:
     UID2Client(std::string endpoint, std::string authKey, std::string secretKey, IdentityScope identityScope);
 
-    ~UID2Client();
+    ~UID2Client() override;
+
+    // Disable copy and move
+    UID2Client(const UID2Client&) = delete;
+    UID2Client(UID2Client&&) = delete;
+    UID2Client& operator=(const UID2Client&) = delete;
+    UID2Client& operator=(UID2Client&&) = delete;
 
     RefreshResult Refresh() override;
 
@@ -49,24 +55,15 @@ public:
     RefreshResult RefreshJson(const std::string& json);
 
 private:
-    // Disable copy and move
-    UID2Client(const UID2Client&) = delete;
-
-    UID2Client(UID2Client&&) = delete;
-
-    UID2Client& operator=(const UID2Client&) = delete;
-
-    UID2Client& operator=(UID2Client&&) = delete;
-
     struct Impl;
-    std::unique_ptr<Impl> mImpl;
+    std::unique_ptr<Impl> impl_;
 };
 
 class UID2ClientFactory {
 public:
     static std::shared_ptr<IUID2Client> Create(std::string endpoint, std::string authKey, std::string secretKey)
     {
-        return std::make_shared<UID2Client>(endpoint, authKey, secretKey, IdentityScope::UID2);
+        return std::make_shared<UID2Client>(std::move(endpoint), std::move(authKey), std::move(secretKey), IdentityScope::UID2);
     }
 };
 
@@ -74,7 +71,7 @@ class EUIDClientFactory {
 public:
     static std::shared_ptr<IUID2Client> Create(std::string endpoint, std::string authKey, std::string secretKey)
     {
-        return std::make_shared<UID2Client>(endpoint, authKey, secretKey, IdentityScope::EUID);
+        return std::make_shared<UID2Client>(std::move(endpoint), std::move(authKey), std::move(secretKey), IdentityScope::EUID);
     }
 };
 }  // namespace uid2

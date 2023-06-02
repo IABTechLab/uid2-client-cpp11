@@ -1,0 +1,17 @@
+name: clang-tidy
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Dev environment
+      run: |
+        sudo ${{github.workspace}}/tools/install-ubuntu-devtools.sh
+        sudo ${{github.workspace}}/tools/install-ubuntu-deps.sh
+
+    - name: Run clang-tidy build
+      run: ${{github.workspace}}/tools/build.sh clang-tidy
