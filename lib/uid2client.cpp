@@ -4,6 +4,7 @@
 #include "keycontainer.h"
 #include "keyparser.h"
 #include "uid2encryption.h"
+#include "version.h"
 
 #include <uid2/uid2client.h>
 
@@ -30,7 +31,7 @@ struct UID2Client::Impl {
             // TODO: non-https endpoint warning
         }
 
-        httpClient_.set_default_headers({{"Authorization", "Bearer " + authKey_}, {"X-UID2-Client-Version", "uid2-client-c++_2.0.0"}});
+        httpClient_.set_default_headers({{"Authorization", "Bearer " + authKey_}, {"X-UID2-Client-Version", "uid2-client-c++_" UID2_SDK_VERSION}});
     }
 
     ~Impl();
