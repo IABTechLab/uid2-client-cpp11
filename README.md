@@ -8,21 +8,43 @@ This SDK simplifies integration with UID2 for those using C++.
 
 This SDK requires C++ version 11.
 
+Supported compilers:
+
+ - clang (tested on versions 12 and 14)
+ - gcc (tested on version 11)
+
+Your mileage may vary with other compilers and versions.
+
+Other dependencies:
+
+ - CMake 3.12+
+ - OpenSSL 1.1.1+
+ - GoogleTest
+
+To set up dependencies on Ubuntu 22.04:
+
 ```
-CMake 3.12+
-
-OpenSSL 1.1.1+
-on Alpine: apk add libressl-dev
-on Ubuntu: apt-get install libssl-dev
-
-GTest
-on Alpine: apk add gtest-dev
-on Ubuntu: apt-get install libgtest-dev
+./tools/install-ubuntu-devtools.sh
+./tools/install-ubuntu-deps.sh
 ```
 
-## Install
+To set up dependencies on Mac OS X, make sure you have latest xcode installed, then:
 
-To install, run the following:
+```
+./tools/install-macosx-deps.sh
+```
+
+If you want to have clang-14 installed on Mac, run these additional commands:
+
+```
+brew install llvm@14
+sudo ln -s $(brew --prefix llvm@14)/bin/clang /usr/local/bin/clang-14
+sudo ln -s $(brew --prefix llvm@14)/bin/clang++ /usr/local/bin/clang++-14
+```
+
+## Build, Test, Install
+
+To build, run unit tests, and install under the default prefix (`/usr/local`):
 
 ```
 cd <this directory>
@@ -34,25 +56,25 @@ make test
 make install
 ```
 
-For an installation example, see [Dockerfile](Dockerfile).
-
-## Run
+You can build a docker image containing the necessary tools and dependencies and then use that to build and test the SDK:
 
 ```
-docker build . -t uid2_client_cpp
-# docker run -it uid2_client_cpp <base-url> <api-key> <secret-key> <advertising-token>
-# For example:
-docker run -it uid2_client_cpp https://integ.uidapi.com test-id-reader-key your-secret-key \
-	AgAAAANzUr8B6CCM+WBKichZGU8iyDBSI83LXiXa1SW2i4LaVQPzlBtOhjoeUUc3Nv+aOPLwiVol0rnxwdNkJNgm710I4lKAp8kpjqZO6evjN6mVZalwzQA5Y4usQVEtwBkYr3V3MbYR1eI3n0Bc7/KVeanfBXUF4odpHNBEWTAL+YgSCA==
+docker build -t uid2_client_cpp_devenv
+docker run -it -v "$PWD:$PWD" -u $(id -u ${USER}):$(id -g ${USER}) -w "$PWD" uid2-client-cpp-build ./tools/build.sh
 ```
 
-## Example Usage
+## Usage
 
-To create a UID2 client instance, use `UID2ClientFactory::Create`.
+To create a UID2 client instance, use `UID2ClientFactory::Create`. For an EUID client instance, use `EUIDClientFactory::Create`.
 
  - `client->Refresh()` to fetch the latest keys
- - `client->Decrypt()` to decrypt an advertising token
- - `client->EncryptData()` to encrypt arbitrary data
- - `client->DecryptData()` to decrypt data encrypted with `EncryptData()`
+ - `client->Decrypt()` to decrypt a UID2 or EUID token
+ - `client->Encrypt()` to encrypt a raw UID2 or EUID into a token
 
-For an example, see [app/example.cpp](app/example.cpp).
+For an example, see [app/example.cpp](app/example.cpp). To run the example application:
+
+```
+# ./build/app/example <base-url> <api-key> <secret-key> <advertising-token>
+# For example:
+./build/app/example https://operator-integ.uidapi.com test-id-reader-key your-secret-key "AgAAAANz...YgSCA=="
+```
