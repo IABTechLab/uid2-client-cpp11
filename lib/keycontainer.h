@@ -13,11 +13,8 @@ namespace uid2 {
         KeyContainer() = default;
 
         KeyContainer(int _callerSiteId, int _masterKeysetId, int _defaultKeysetId, long _tokenExpirySeconds)
+            : callerSiteId(_callerSiteId), masterKeySetId(_masterKeysetId), defaultKeySetId(_defaultKeysetId), tokenExpirySeconds(_tokenExpirySeconds)
         {
-            callerSiteId = _callerSiteId;
-            masterKeySetId = _masterKeysetId;
-            defaultKeySetId = _defaultKeysetId;
-            tokenExpirySeconds = _tokenExpirySeconds;
         }
 
         void Add(Key &&key)

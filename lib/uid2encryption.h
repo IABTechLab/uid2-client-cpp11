@@ -4,7 +4,6 @@
 
 #include <uid2/timestamp.h>
 #include <uid2/types.h>
-#include <uid2/uid2_token_generator.h>
 
 #include <cstdint>
 #include <vector>

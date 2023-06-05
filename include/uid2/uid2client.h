@@ -13,14 +13,17 @@ namespace uid2 {
     public:
         virtual ~IUID2Client() = default;
 
+        /// Refreshes encryption keys. Call this regularly (eg every hour) to ensure keys are up to date.
         virtual RefreshResult Refresh() = 0;
 
         virtual DecryptionResult Decrypt(const std::string &token) = 0;
 
         virtual EncryptionResult Encrypt(const std::string &uid) = 0;
 
+        /// @deprecated
         virtual EncryptionDataResult EncryptData(const EncryptionDataRequest &request) = 0;
 
+        /// @deprecated
         virtual DecryptionDataResult DecryptData(const std::string &encryptedData) = 0;
     };
 

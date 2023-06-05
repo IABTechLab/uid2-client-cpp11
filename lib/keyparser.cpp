@@ -43,43 +43,45 @@ namespace uid2 {
         }
 
         const json11::Json::object *body;
-        if (!ExtractObject(json.object_items(), BODY_NAME, body)) {
-            out_err = "returned json does not contain a body object";
-            return false;
-        }
-
-        int callerSiteId;
-        if (!ExtractInt(*body, CALLER_SITE_ID_NAME, callerSiteId)) {
-            out_err = "returned json does not contain a caller site id";
-            return false;
-        }
-        out_container.setCallerSiteId(callerSiteId);
-
-        int masterKeysetId;
-        if (!ExtractInt(*body, MASTER_KEYSET_ID_NAME, masterKeysetId)) {
-            out_err = "returned json does not contain a master keyset id";
-            return false;
-        }
-        out_container.setMasterKeySetId(masterKeysetId);
-
-        int defaultKeysetId;
-        if (!ExtractInt(*body, DEFAULT_KEYSET_ID_NAME, defaultKeysetId)) {
-            defaultKeysetId = NO_KEYSET;
-        }
-        out_container.setDefaultKeySetId(defaultKeysetId);
-
-        int tokenExpirySeconds;
-        if (!ExtractInt(*body, TOKEN_EXPIRY_SECONDS_NAME, tokenExpirySeconds)) {
-            tokenExpirySeconds = 30 * 24 * 60 * 60;
-        }
-        out_container.setTokenExpirySeconds(tokenExpirySeconds);
-
         const json11::Json::array *keys;
 
-        if (!ExtractArray(*body, KEYS_NAME, keys)) {
+        if (ExtractObject(json.object_items(), BODY_NAME, body)) {
+            int callerSiteId;
+            if (!ExtractInt(*body, CALLER_SITE_ID_NAME, callerSiteId)) {
+                out_err = "returned json does not contain a caller site id";
+                return false;
+            }
+            out_container.setCallerSiteId(callerSiteId);
+
+            int masterKeysetId;
+            if (!ExtractInt(*body, MASTER_KEYSET_ID_NAME, masterKeysetId)) {
+                out_err = "returned json does not contain a master keyset id";
+                return false;
+            }
+            out_container.setMasterKeySetId(masterKeysetId);
+
+            int defaultKeysetId;
+            if (!ExtractInt(*body, DEFAULT_KEYSET_ID_NAME, defaultKeysetId)) {
+                defaultKeysetId = NO_KEYSET;
+            }
+            out_container.setDefaultKeySetId(defaultKeysetId);
+
+            int tokenExpirySeconds;
+            if (!ExtractInt(*body, TOKEN_EXPIRY_SECONDS_NAME, tokenExpirySeconds)) {
+                tokenExpirySeconds = 30 * 24 * 60 * 60;
+            }
+            out_container.setTokenExpirySeconds(tokenExpirySeconds);
+
+            if (!ExtractArray(*body, KEYS_NAME, keys)) {
+                out_err = "returned json does not contain a keys array";
+                return false;
+            }
+        } else if(!ExtractArray(json.object_items(), BODY_NAME, keys)) {
             out_err = "returned json does not contain a keys array";
             return false;
         }
+
+
 
         for (const auto &obj: *keys) {
             Key key;
@@ -92,7 +94,6 @@ namespace uid2 {
 
             if (!ExtractInt(keyItem, SITE_ID_NAME, key.siteId)) {
                 out_err = "error parsing site id";
-                return false;
             }
 
             if (!ExtractInt(keyItem, KEYSET_ID_NAME, key.keysetId)) {

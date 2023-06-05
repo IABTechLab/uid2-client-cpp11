@@ -4,6 +4,7 @@
 #include "base64.h"
 #include "bigendianprocessor.h"
 #include "uid2base64urlcoder.h"
+#include "uid2tokengenerator.h"
 #include <memory>
 #include <stdexcept>
 #include <unordered_map>
