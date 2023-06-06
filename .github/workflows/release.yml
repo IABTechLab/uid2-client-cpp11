@@ -1,0 +1,28 @@
+name: Release
+
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Dev environment
+      run: |
+        sudo ${{github.workspace}}/tools/install-ubuntu-devtools.sh
+        sudo ${{github.workspace}}/tools/install-ubuntu-deps.sh
+
+    - name: Run cmake
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+
+    - name: Create and push tag
+      run: |
+        TAG_NAME=v$(cat build/VERSION)
+        git config user.name "${GITHUB_ACTOR}"
+        git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+        git tag -a "${TAG_NAME}" -m "Release ${TAG_NAME}"
+        git push origin "${TAG_NAME}"

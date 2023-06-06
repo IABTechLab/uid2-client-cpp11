@@ -1,6 +1,8 @@
 ﻿cmake_minimum_required (VERSION 3.12)
 
-project ("uid2-client")
+project ("uid2-client" VERSION 3.0.0)
+
+configure_file(VERSION.in VERSION @ONLY)
 
 set (CMAKE_CXX_STANDARD 11)
 
