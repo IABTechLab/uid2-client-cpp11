@@ -33,8 +33,9 @@ bool KeyParser::TryParse(const std::string& jsonString, KeyContainer& out_contai
 {
     const json11::Json json = json11::Json::parse(jsonString.c_str(), out_err, json11::STANDARD);
 
-    if (!out_err.empty())
+    if (!out_err.empty()) {
         return false;
+    }
 
     if (!json.is_object()) {
         out_err = "returned json is not an object";
@@ -50,26 +51,26 @@ bool KeyParser::TryParse(const std::string& jsonString, KeyContainer& out_contai
             out_err = "returned json does not contain a caller site id";
             return false;
         }
-        out_container.setCallerSiteId(callerSiteId);
+        out_container.SetCallerSiteId(callerSiteId);
 
         int masterKeysetId;
         if (!ExtractInt(*body, MASTER_KEYSET_ID_NAME, masterKeysetId)) {
             out_err = "returned json does not contain a master keyset id";
             return false;
         }
-        out_container.setMasterKeySetId(masterKeysetId);
+        out_container.SetMasterKeySetId(masterKeysetId);
 
         int defaultKeysetId;
         if (!ExtractInt(*body, DEFAULT_KEYSET_ID_NAME, defaultKeysetId)) {
             defaultKeysetId = NO_KEYSET;
         }
-        out_container.setDefaultKeySetId(defaultKeysetId);
+        out_container.SetDefaultKeySetId(defaultKeysetId);
 
         int tokenExpirySeconds;
         if (!ExtractInt(*body, TOKEN_EXPIRY_SECONDS_NAME, tokenExpirySeconds)) {
             tokenExpirySeconds = 30 * 24 * 60 * 60;
         }
-        out_container.setTokenExpirySeconds(tokenExpirySeconds);
+        out_container.SetTokenExpirySeconds(tokenExpirySeconds);
 
         if (!ExtractArray(*body, KEYS_NAME, keys)) {
             out_err = "returned json does not contain a keys array";
@@ -84,41 +85,41 @@ bool KeyParser::TryParse(const std::string& jsonString, KeyContainer& out_contai
         Key key;
         const auto& keyItem = obj.object_items();
 
-        if (!ExtractInt(keyItem, ID_NAME, key.id)) {
+        if (!ExtractInt(keyItem, ID_NAME, key.id_)) {
             out_err = "error parsing id";
             return false;
         }
 
-        if (!ExtractInt(keyItem, SITE_ID_NAME, key.siteId)) {
+        if (!ExtractInt(keyItem, SITE_ID_NAME, key.siteId_)) {
             out_err = "error parsing site id";
         }
 
-        if (!ExtractInt(keyItem, KEYSET_ID_NAME, key.keysetId)) {
-            key.keysetId = -1;
+        if (!ExtractInt(keyItem, KEYSET_ID_NAME, key.keysetId_)) {
+            key.keysetId_ = -1;
         }
 
-        if (!ExtractTimestamp(keyItem, CREATED_NAME, key.created)) {
+        if (!ExtractTimestamp(keyItem, CREATED_NAME, key.created_)) {
             out_err = "error parsing created time";
             return false;
         }
 
-        if (!ExtractTimestamp(keyItem, ACTIVATES_NAME, key.activates)) {
+        if (!ExtractTimestamp(keyItem, ACTIVATES_NAME, key.activates_)) {
             out_err = "error parsing activation time";
             return false;
         }
 
-        if (!ExtractTimestamp(keyItem, EXPIRES_NAME, key.expires)) {
+        if (!ExtractTimestamp(keyItem, EXPIRES_NAME, key.expires_)) {
             out_err = "error parsing expiration time";
             return false;
         }
 
-        const std::string* secret_string;
-        if (!ExtractString(keyItem, SECRET_NAME, secret_string)) {
+        const std::string* secretString;
+        if (!ExtractString(keyItem, SECRET_NAME, secretString)) {
             out_err = "error parsing secret";
             return false;
         }
 
-        macaron::Base64::Decode(*secret_string, key.secret);
+        macaron::Base64::Decode(*secretString, key.secret_);
         out_container.Add(std::move(key));
     }
 
@@ -132,11 +133,13 @@ bool ExtractInt(const json11::Json::object& obj, const std::string& name, TInt& 
 {
     const auto it = obj.find(name);
 
-    if (it == obj.end())
+    if (it == obj.end()) {
         return false;
+    }
 
-    if (!it->second.is_number())
+    if (!it->second.is_number()) {
         return false;
+    }
 
     out_value = it->second.int_value();
     return true;
@@ -145,8 +148,9 @@ bool ExtractInt(const json11::Json::object& obj, const std::string& name, TInt& 
 bool ExtractTimestamp(const json11::Json::object& obj, const std::string& name, Timestamp& out_value)
 {
     int value;
-    if (!ExtractInt(obj, name, value))
+    if (!ExtractInt(obj, name, value)) {
         return false;
+    }
 
     out_value = Timestamp::FromEpochSecond(value);
     return true;
@@ -156,10 +160,12 @@ bool ExtractString(const json11::Json::object& obj, const std::string& name, con
 {
     const auto it = obj.find(name);
 
-    if (it == obj.end())
+    if (it == obj.end()) {
         return false;
-    if (!it->second.is_string())
+    }
+    if (!it->second.is_string()) {
         return false;
+    }
 
     out_value = &it->second.string_value();
     return true;
@@ -169,10 +175,12 @@ bool ExtractArray(const json11::Json::object& obj, const std::string& name, cons
 {
     const auto it = obj.find(name);
 
-    if (it == obj.end())
+    if (it == obj.end()) {
         return false;
-    if (!it->second.is_array())
+    }
+    if (!it->second.is_array()) {
         return false;
+    }
 
     out_value = &it->second.array_items();
     return true;
@@ -182,13 +190,14 @@ bool ExtractObject(const json11::Json::object& obj, const std::string& name, con
 {
     const auto it = obj.find(name);
 
-    if (it == obj.end())
+    if (it == obj.end()) {
         return false;
-    if (!it->second.is_object())
+    }
+    if (!it->second.is_object()) {
         return false;
+    }
 
     out_value = &it->second.object_items();
-
     return true;
 }
 }  // namespace uid2

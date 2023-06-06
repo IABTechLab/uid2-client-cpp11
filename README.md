@@ -41,6 +41,7 @@ brew install llvm@14
 sudo ln -s $(brew --prefix llvm@14)/bin/clang /usr/local/bin/clang-14
 sudo ln -s $(brew --prefix llvm@14)/bin/clang++ /usr/local/bin/clang++-14
 sudo ln -s $(brew --prefix llvm@14)/bin/clang-format /usr/local/bin/clang-format-14
+sudo ln -s $(brew --prefix llvm@14)/bin/clang-tidy /usr/local/bin/clang-tidy-14
 ```
 
 ## Build, Test, Install
@@ -89,4 +90,11 @@ Most modern IDEs should pick that up automatically. To reformat all the code, ru
 
 ```
 ./tools/devenv.sh ./tools/format.sh --fix
+```
+
+Additionally the codebase is subject to clang-tidy checks. Some IDEs can pick that up automatically. Otherwise
+you can run the checks by running (requires docker):
+
+```
+./tools/devenv.sh ./tools/build.sh clang-tidy
 ```

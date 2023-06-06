@@ -7,30 +7,30 @@
 
 #include <uid2/uid2client.h>
 
-#include <functional>
 #include <mutex>
 
 namespace uid2 {
 struct UID2Client::Impl {
-    std::string endpoint;
-    std::string authKey;
-    std::vector<std::uint8_t> secretKey;
-    IdentityScope identityScope;
-    httplib::Client httpClient;
-    std::shared_ptr<KeyContainer> container;
-    mutable std::recursive_mutex refreshMutex;
-    mutable std::mutex containerMutex;
+    std::string endpoint_;
+    std::string authKey_;
+    std::vector<std::uint8_t> secretKey_;
+    IdentityScope identityScope_;
+    httplib::Client httpClient_;
+    std::shared_ptr<KeyContainer> container_;
+    mutable std::recursive_mutex refreshMutex_;
+    mutable std::mutex containerMutex_;
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     Impl(std::string endpoint, std::string authKey, std::string secretKey, IdentityScope identityScope)
-        : endpoint(endpoint), authKey(authKey), identityScope(identityScope), httpClient(endpoint.c_str())
+        : endpoint_(std::move(endpoint)), authKey_(std::move(authKey)), identityScope_(identityScope), httpClient_(endpoint_.c_str())
     {
-        macaron::Base64::Decode(secretKey, this->secretKey);
+        macaron::Base64::Decode(secretKey, this->secretKey_);
 
-        if (endpoint.find("https") != 0) {
+        if (endpoint_.find("https") != 0) {
             // TODO: non-https endpoint warning
         }
 
-        httpClient.set_default_headers({{"Authorization", "Bearer " + authKey}, {"X-UID2-Client-Version", "uid2-client-c++_2.0.0"}});
+        httpClient_.set_default_headers({{"Authorization", "Bearer " + authKey_}, {"X-UID2-Client-Version", "uid2-client-c++_2.0.0"}});
     }
 
     ~Impl();
@@ -45,25 +45,25 @@ struct UID2Client::Impl {
 };
 
 UID2Client::UID2Client(std::string endpoint, std::string authKey, std::string secretKey, IdentityScope identityScope)
-    : mImpl(new Impl(endpoint, authKey, secretKey, identityScope))
+    : impl_(new Impl(std::move(endpoint), std::move(authKey), std::move(secretKey), identityScope))
 {
 }
 
 UID2Client::~UID2Client()
 {
-    mImpl.reset();
+    impl_.reset();
 }
 
 RefreshResult UID2Client::Refresh()
 {
-    const std::lock_guard<std::recursive_mutex> lock(mImpl->refreshMutex);
+    const std::lock_guard<std::recursive_mutex> lock(impl_->refreshMutex_);
 
     std::string err;
-    std::string jsonResponse = mImpl->GetLatestKeys(err);
+    std::string jsonResponse = impl_->GetLatestKeys(err);
     if (!err.empty()) {
         return RefreshResult::MakeError(std::move(err));
     }
-    return mImpl->RefreshJson(jsonResponse);
+    return impl_->RefreshJson(jsonResponse);
 }
 
 DecryptionResult UID2Client::Decrypt(const std::string& token)
@@ -74,14 +74,15 @@ DecryptionResult UID2Client::Decrypt(const std::string& token)
 DecryptionResult UID2Client::Decrypt(const std::string& token, Timestamp now)
 {
     // hold reference to container so it's not disposed by refresh
-    const auto activeContainer = mImpl->GetKeyContainer();
+    const auto activeContainer = impl_->GetKeyContainer();
     if (activeContainer == nullptr) {
         return DecryptionResult::MakeError(DecryptionStatus::NOT_INITIALIZED);
-    } else if (!activeContainer->IsValid(now)) {
+    }
+    if (!activeContainer->IsValid(now)) {
         return DecryptionResult::MakeError(DecryptionStatus::KEYS_NOT_SYNCED);
     }
 
-    return DecryptToken(token, *activeContainer, now, mImpl->identityScope, /*checkValidity*/ true);
+    return DecryptToken(token, *activeContainer, now, impl_->identityScope_, /*checkValidity*/ true);
 }
 
 EncryptionResult UID2Client::Encrypt(const std::string& uid)
@@ -91,55 +92,55 @@ EncryptionResult UID2Client::Encrypt(const std::string& uid)
 
 EncryptionResult UID2Client::Encrypt(const std::string& uid, Timestamp now)
 {
-    const auto activeContainer = mImpl->GetKeyContainer();
+    const auto activeContainer = impl_->GetKeyContainer();
     if (activeContainer == nullptr) {
         return EncryptionResult::MakeError(EncryptionStatus::NOT_INITIALIZED);
-    } else if (!activeContainer->IsValid(now)) {
+    }
+    if (!activeContainer->IsValid(now)) {
         return EncryptionResult::MakeError(EncryptionStatus::KEYS_NOT_SYNCED);
     }
 
-    return EncryptUID(uid, *activeContainer, now, mImpl->identityScope);
+    return EncryptUID(uid, *activeContainer, now, impl_->identityScope_);
 }
 
 EncryptionDataResult UID2Client::EncryptData(const EncryptionDataRequest& req)
 {
     // hold reference to container so it's not disposed by refresh
-    const auto activeContainer = mImpl->GetKeyContainer();
-    return uid2::EncryptData(req, activeContainer.get(), mImpl->identityScope);
+    const auto activeContainer = impl_->GetKeyContainer();
+    return uid2::EncryptData(req, activeContainer.get(), impl_->identityScope_);
 }
 
 DecryptionDataResult UID2Client::DecryptData(const std::string& encryptedData)
 {
     // hold reference to container so it's not disposed by refresh
-    const auto activeContainer = mImpl->GetKeyContainer();
+    const auto activeContainer = impl_->GetKeyContainer();
     if (activeContainer == nullptr) {
         return DecryptionDataResult::MakeError(DecryptionStatus::NOT_INITIALIZED);
-    } else if (!activeContainer->IsValid(Timestamp::Now())) {
+    }
+    if (!activeContainer->IsValid(Timestamp::Now())) {
         return DecryptionDataResult::MakeError(DecryptionStatus::KEYS_NOT_SYNCED);
     }
 
     try {
         std::vector<std::uint8_t> encryptedBytes;
         macaron::Base64::Decode(encryptedData, encryptedBytes);
-        return uid2::DecryptData(encryptedBytes, *activeContainer, mImpl->identityScope);
+        return uid2::DecryptData(encryptedBytes, *activeContainer, impl_->identityScope_);
     } catch (...) {
         return DecryptionDataResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
     }
-
-    return DecryptionDataResult::MakeError(DecryptionStatus::SUCCESS);
 }
 
 RefreshResult UID2Client::RefreshJson(const std::string& json)
 {
-    const std::lock_guard<std::recursive_mutex> lock(mImpl->refreshMutex);
+    const std::lock_guard<std::recursive_mutex> lock(impl_->refreshMutex_);
 
-    return mImpl->RefreshJson(json);
+    return impl_->RefreshJson(json);
 }
 
 UID2Client::Impl::~Impl()
 {
-    httpClient.stop();
-}
+    httpClient_.stop();
+}  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 
 static const int V2_NONCE_LEN = 8;
 
@@ -164,7 +165,7 @@ static std::string ParseV2Response(const std::string& envelope, const std::uint8
     std::vector<std::uint8_t> envelopeBytes;
     macaron::Base64::Decode(envelope, envelopeBytes);
     std::vector<std::uint8_t> payload(envelopeBytes.size());
-    const int payloadLen = DecryptGCM(envelopeBytes.data(), envelopeBytes.size(), secret, payload.data());
+    const int payloadLen = DecryptGCM(envelopeBytes.data(), static_cast<int>(envelopeBytes.size()), secret, payload.data());
     if (payloadLen < 16) {
         throw std::runtime_error("invalid payload");
     }
@@ -173,24 +174,24 @@ static std::string ParseV2Response(const std::string& envelope, const std::uint8
         throw std::runtime_error("nonce mismatch");
     }
 
-    return {(const char*)payload.data() + 16, std::size_t(payloadLen - 16)};
+    return {reinterpret_cast<const char*>(payload.data()) + 16, static_cast<std::size_t>(payloadLen - 16)};
 }
 
 std::string UID2Client::Impl::GetLatestKeys(std::string& out_err)
 {
     std::uint8_t nonce[V2_NONCE_LEN];
-    const auto request = MakeV2Request(secretKey.data(), Timestamp::Now(), nonce);
-    if (auto res = httpClient.Post("/v2/key/sharing", request, "text/plain")) {
-        if (res->status >= 200 || res->status < 300) {
-            return ParseV2Response(res->body, secretKey.data(), nonce);
-        } else {
-            out_err = "bad http response, status code: " + std::to_string(res->status);
+    const auto request = MakeV2Request(secretKey_.data(), Timestamp::Now(), nonce);
+    if (auto res = httpClient_.Post("/v2/key/sharing", request, "text/plain")) {
+        if (res->status >= 200 && res->status < 300) {
+            return ParseV2Response(res->body, secretKey_.data(), nonce);
         }
+
+        out_err = "bad http response, status code: " + std::to_string(res->status);
     } else {
         std::stringstream ss;
         ss << "error code: " << res.error();
-        auto result = httpClient.get_openssl_verify_result();
-        if (result) {
+        auto result = httpClient_.get_openssl_verify_result();
+        if (result != 0) {
             ss << ", verify error: " << X509_verify_cert_error_string(result);
         }
         out_err = ss.str();
@@ -206,20 +207,20 @@ RefreshResult UID2Client::Impl::RefreshJson(const std::string& json)
     if (KeyParser::TryParse(json, *container, err)) {
         SwapKeyContainer(container);
         return RefreshResult::MakeSuccess();
-    } else {
-        return RefreshResult::MakeError(std::move(err));
     }
+
+    return RefreshResult::MakeError(std::move(err));
 }
 
 void UID2Client::Impl::SwapKeyContainer(const std::shared_ptr<KeyContainer>& newContainer)
 {
-    const std::lock_guard<std::mutex> lock(containerMutex);
-    this->container = std::shared_ptr<KeyContainer>{newContainer};
+    const std::lock_guard<std::mutex> lock(containerMutex_);
+    this->container_ = std::shared_ptr<KeyContainer>{newContainer};
 }
 
 std::shared_ptr<KeyContainer> UID2Client::Impl::GetKeyContainer() const
 {
-    const std::lock_guard<std::mutex> lock(containerMutex);
-    return this->container;
+    const std::lock_guard<std::mutex> lock(containerMutex_);
+    return this->container_;
 }
 }  // namespace uid2

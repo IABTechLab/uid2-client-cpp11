@@ -16,9 +16,10 @@ namespace uid2 {
 
 static void AddPkcs7Padding(std::vector<std::uint8_t>& data)
 {
-    const std::uint8_t padlen = 16 - (std::uint8_t)(data.size() % 16);
-    for (std::uint8_t i = 0; i < padlen; ++i)
-        data.push_back(padlen);
+    const auto padlen = 16 - static_cast<int>(data.size() % 16);
+    for (int i = 0; i < padlen; ++i) {
+        data.push_back(static_cast<std::uint8_t>(padlen));
+    }
 }
 
 static std::vector<std::uint8_t> EncryptImpl(std::vector<std::uint8_t>& data, const std::uint8_t* iv, const std::vector<std::uint8_t>& secret)
@@ -35,31 +36,31 @@ std::string GenerateUid2TokenV2(const std::string& identity, const Key& masterKe
 {
     std::random_device rd;
     std::vector<std::uint8_t> identityBuffer(4 + 4 + identity.size() + 4 + 8);
-    BigEndianByteWriter identityWriter(identityBuffer.data(), identityBuffer.size());
+    BigEndianByteWriter identityWriter(identityBuffer.data(), static_cast<int>(identityBuffer.size()));
     identityWriter.WriteInt32(siteId);
-    identityWriter.WriteInt32(identity.size());
-    identityWriter.WriteBytes((const std::uint8_t*)identity.data(), 0, identity.size());
+    identityWriter.WriteInt32(static_cast<std::int32_t>(identity.size()));
+    identityWriter.WriteBytes(reinterpret_cast<const std::uint8_t*>(identity.data()), 0, static_cast<int>(identity.size()));
     identityWriter.WriteInt32(0);
     identityWriter.WriteInt64(Timestamp::Now().AddSeconds(-60).GetEpochMilli());
     std::uint8_t identityIv[16];
     std::generate(identityIv, identityIv + sizeof(identityIv), std::ref(rd));
-    const auto encryptedIdentity = EncryptImpl(identityBuffer, identityIv, siteKey.secret);
+    const auto encryptedIdentity = EncryptImpl(identityBuffer, identityIv, siteKey.secret_);
 
     std::vector<std::uint8_t> masterBuffer(8 + 4 + encryptedIdentity.size());
-    BigEndianByteWriter masterWriter(masterBuffer.data(), masterBuffer.size());
-    masterWriter.WriteInt64(params.tokenExpiry.GetEpochMilli());
-    masterWriter.WriteInt32((std::int32_t)siteKey.id);
-    masterWriter.WriteBytes(encryptedIdentity.data(), 0, encryptedIdentity.size());
+    BigEndianByteWriter masterWriter(masterBuffer.data(), static_cast<int>(masterBuffer.size()));
+    masterWriter.WriteInt64(params.tokenExpiry_.GetEpochMilli());
+    masterWriter.WriteInt32(static_cast<std::int32_t>(siteKey.id_));
+    masterWriter.WriteBytes(encryptedIdentity.data(), 0, static_cast<int>(encryptedIdentity.size()));
 
     std::uint8_t masterIv[16];
     std::generate(masterIv, masterIv + sizeof(masterIv), std::ref(rd));
-    const auto encryptedMaster = EncryptImpl(masterBuffer, masterIv, masterKey.secret);
+    const auto encryptedMaster = EncryptImpl(masterBuffer, masterIv, masterKey.secret_);
 
     std::vector<std::uint8_t> rootBuffer(1 + 4 + encryptedMaster.size());
-    BigEndianByteWriter rootWriter(rootBuffer.data(), rootBuffer.size());
+    BigEndianByteWriter rootWriter(rootBuffer.data(), static_cast<int>(rootBuffer.size()));
     rootWriter.WriteByte(2);
-    rootWriter.WriteInt32((std::int32_t)masterKey.id);
-    rootWriter.WriteBytes(encryptedMaster.data(), 0, encryptedMaster.size());
+    rootWriter.WriteInt32(static_cast<std::int32_t>(masterKey.id_));
+    rootWriter.WriteBytes(encryptedMaster.data(), 0, static_cast<int>(encryptedMaster.size()));
 
     return macaron::Base64::Encode(rootBuffer);
 }
@@ -96,12 +97,12 @@ std::string GenerateUID2TokenWithDebugInfo(
     sitePayloadWriter.WriteInt64(Timestamp::Now().AddSeconds(-40).GetEpochMilli());  // refreshed
     std::vector<std::uint8_t> identityBytes;
     macaron::Base64::Decode(uid, identityBytes);
-    sitePayloadWriter.WriteBytes(identityBytes.data(), 0, identityBytes.size());
+    sitePayloadWriter.WriteBytes(identityBytes.data(), 0, static_cast<int>(identityBytes.size()));
 
     std::uint8_t masterPayload[256];
     BigEndianByteWriter masterPayloadWriter(masterPayload, sizeof(masterPayload));
 
-    masterPayloadWriter.WriteInt64(params.tokenExpiry.GetEpochMilli());
+    masterPayloadWriter.WriteInt64(params.tokenExpiry_.GetEpochMilli());
     masterPayloadWriter.WriteInt64(Timestamp::Now().GetEpochMilli());  // token created
 
     // operator data
@@ -110,29 +111,26 @@ std::string GenerateUID2TokenWithDebugInfo(
     masterPayloadWriter.WriteInt32(0);  // operator version
     masterPayloadWriter.WriteInt32(0);  // operator key id
 
-    masterPayloadWriter.WriteInt32((std::int32_t)siteKey.id);
+    masterPayloadWriter.WriteInt32(static_cast<std::int32_t>(siteKey.id_));
     const auto masterPayloadLen =
         masterPayloadWriter.GetPosition() +
-        EncryptGCM(sitePayload, sitePayloadWriter.GetPosition(), siteKey.secret.data(), masterPayload + masterPayloadWriter.GetPosition());
+        EncryptGCM(sitePayload, sitePayloadWriter.GetPosition(), siteKey.secret_.data(), masterPayload + masterPayloadWriter.GetPosition());
 
     std::vector<std::uint8_t> rootPayload(256);
     BigEndianByteWriter writer(rootPayload);
 
-    char firstChar = uid[0];
-    IdentityType identityType = (firstChar == 'F' || firstChar == 'B') ? IdentityType::Phone : IdentityType::Email;  // see UID2-79+Token+and+ID+format+v3
+    const char firstChar = uid[0];
+    const IdentityType identityType = (firstChar == 'F' || firstChar == 'B') ? IdentityType::PHONE : IdentityType::EMAIL;  // see UID2-79+Token+and+ID+format+v3
 
-    writer.WriteByte((((std::uint8_t)params.identityScope << 4) | ((std::uint8_t)identityType << 2)));
+    writer.WriteByte(((static_cast<std::uint8_t>(params.identityScope_) << 4) | (static_cast<std::uint8_t>(identityType) << 2)));
     writer.WriteByte(static_cast<uint8_t>(adTokenVersion));
-    writer.WriteInt32(masterKey.id);
+    writer.WriteInt32(static_cast<std::int32_t>(masterKey.id_));
 
     const auto rootPayloadLen =
-        writer.GetPosition() + EncryptGCM(masterPayload, masterPayloadLen, masterKey.secret.data(), rootPayload.data() + writer.GetPosition());
+        writer.GetPosition() + EncryptGCM(masterPayload, masterPayloadLen, masterKey.secret_.data(), rootPayload.data() + writer.GetPosition());
     rootPayload.resize(rootPayloadLen);
 
-    if (adTokenVersion == AdvertisingTokenVersion::V4)
-        return uid2::UID2Base64UrlCoder::Encode(rootPayload);
-    else
-        return macaron::Base64::Encode(rootPayload);
+    return adTokenVersion == AdvertisingTokenVersion::V4 ? uid2::UID2Base64UrlCoder::Encode(rootPayload) : macaron::Base64::Encode(rootPayload);
 }
 
 std::string EncryptDataV2(const std::vector<std::uint8_t>& data, const uid2::Key& key, int siteId, uid2::Timestamp now)
@@ -142,7 +140,7 @@ std::string EncryptDataV2(const std::vector<std::uint8_t>& data, const uid2::Key
     std::generate(iv, iv + sizeof(iv), std::ref(rd));
 
     auto dataBytes = data;
-    const auto encrypted = EncryptImpl(dataBytes, iv, key.secret);
+    const auto encrypted = EncryptImpl(dataBytes, iv, key.secret_);
 
     std::vector<std::uint8_t> rootPayload(encrypted.size() + 64);
     BigEndianByteWriter writer(rootPayload);
@@ -150,8 +148,8 @@ std::string EncryptDataV2(const std::vector<std::uint8_t>& data, const uid2::Key
     writer.WriteByte(1);    // version
     writer.WriteInt64(now.GetEpochMilli());
     writer.WriteInt32(siteId);
-    writer.WriteInt32((std::int32_t)key.id);
-    writer.WriteBytes(encrypted.data(), 0, encrypted.size());
+    writer.WriteInt32(static_cast<std::int32_t>(key.id_));
+    writer.WriteBytes(encrypted.data(), 0, static_cast<int>(encrypted.size()));
     rootPayload.resize(writer.GetPosition());
 
     return macaron::Base64::Encode(rootPayload);

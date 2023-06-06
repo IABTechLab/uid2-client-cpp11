@@ -44,8 +44,8 @@ DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
     }
 
-    std::string headerStr = token.substr(0, 4);
-    bool isBase64UrlEncoding = std::any_of(headerStr.begin(), headerStr.end(), [](char c) { return c == '-' || c == '_'; });
+    const std::string headerStr = token.substr(0, 4);
+    const bool isBase64UrlEncoding = std::any_of(headerStr.begin(), headerStr.end(), [](char c) { return c == '-' || c == '_'; });
     try {
         std::vector<std::uint8_t> encryptedId;
         std::vector<std::uint8_t> headerBytes;
@@ -63,10 +63,12 @@ DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys
         if (headerBytes[0] == 2) {
             macaron::Base64::Decode(token, encryptedId);
             return DecryptTokenV2(encryptedId, keys, now, checkValidity);
-        } else if (headerBytes[1] == (std::uint8_t)AdvertisingTokenVersion::V3) {
+        }
+        if (headerBytes[1] == static_cast<std::uint8_t>(AdvertisingTokenVersion::V3)) {
             macaron::Base64::Decode(token, encryptedId);
             return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
-        } else if (headerBytes[1] == (std::uint8_t)AdvertisingTokenVersion::V4) {
+        }
+        if (headerBytes[1] == static_cast<std::uint8_t>(AdvertisingTokenVersion::V4)) {
             // same as V3 but use Base64URL encoding
             uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
             return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
@@ -81,14 +83,14 @@ static DecryptionResult DecryptTokenV2(const std::vector<std::uint8_t>& encrypte
 {
     BigEndianByteReader reader(encryptedId);
 
-    const int version = (int)reader.ReadByte();
+    const int version = static_cast<int>(reader.ReadByte());
     if (version != 2) {
         return DecryptionResult::MakeError(DecryptionStatus::VERSION_NOT_SUPPORTED);
     }
 
     const std::int32_t masterKeyId = reader.ReadInt32();
 
-    const auto masterKey = keys.Get(masterKeyId);
+    const auto* const masterKey = keys.Get(masterKeyId);
     if (masterKey == nullptr) {
         return DecryptionResult::MakeError(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY);
     }
@@ -97,20 +99,20 @@ static DecryptionResult DecryptTokenV2(const std::vector<std::uint8_t>& encrypte
     reader.ReadBytes(iv, 0, sizeof(iv));
 
     std::vector<std::uint8_t> masterDecrypted;
-    Decrypt(&encryptedId[21], encryptedId.size() - 21, iv, masterKey->secret.data(), masterDecrypted);
+    Decrypt(&encryptedId[21], static_cast<int>(encryptedId.size()) - 21, iv, masterKey->secret_.data(), masterDecrypted);
 
     BigEndianByteReader masterPayloadReader(masterDecrypted);
 
     const Timestamp expires = Timestamp::FromEpochMilli(masterPayloadReader.ReadInt64());
     const int siteKeyId = masterPayloadReader.ReadInt32();
-    const auto siteKey = keys.Get(siteKeyId);
+    const auto* const siteKey = keys.Get(siteKeyId);
     if (siteKey == nullptr) {
         return DecryptionResult::MakeError(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY);
     }
 
     masterPayloadReader.ReadBytes(iv, 0, BLOCK_SIZE);
     std::vector<std::uint8_t> identityDecrypted;
-    Decrypt(&masterDecrypted[28], masterDecrypted.size() - 28, iv, siteKey->secret.data(), identityDecrypted);
+    Decrypt(&masterDecrypted[28], static_cast<int>(masterDecrypted.size()) - 28, iv, siteKey->secret_.data(), identityDecrypted);
 
     BigEndianByteReader identityPayloadReader(identityDecrypted);
 
@@ -119,16 +121,16 @@ static DecryptionResult DecryptTokenV2(const std::vector<std::uint8_t>& encrypte
 
     std::string idString;
     idString.resize(idLength);
-    identityPayloadReader.ReadBytes((std::uint8_t*)&idString[0], 0, idLength);
+    identityPayloadReader.ReadBytes(const_cast<std::uint8_t*>(reinterpret_cast<const std::uint8_t*>(idString.data())), 0, idLength);
 
-    const std::int32_t privacyBits = identityPayloadReader.ReadInt32();
+    const std::int32_t privacyBits = identityPayloadReader.ReadInt32();  // NOLINT(clang-analyzer-deadcode.DeadStores)
     const Timestamp established = Timestamp::FromEpochMilli(identityPayloadReader.ReadInt64());
 
     if (checkValidity && expires < now) {
-        return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId, siteKey->siteId);
+        return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId, siteKey->siteId_);
     }
 
-    return DecryptionResult::MakeSuccess(std::move(idString), established, siteId, siteKey->siteId);
+    return DecryptionResult::MakeSuccess(std::move(idString), established, siteId, siteKey->siteId_);
 }
 
 static DecryptionResult
@@ -141,10 +143,10 @@ DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer&
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_IDENTITY_SCOPE);
     }
 
-    const auto version = reader.ReadByte();
+    const auto version = reader.ReadByte();  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
     const std::int32_t masterKeyId = reader.ReadInt32();
-    const auto masterKey = keys.Get(masterKeyId);
+    const auto* const masterKey = keys.Get(masterKeyId);
     if (masterKey == nullptr) {
         return DecryptionResult::MakeError(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY);
     }
@@ -153,20 +155,20 @@ DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer&
     if (reader.GetRemainingSize() > sizeof(masterPayload)) {
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
     }
-    const int masterPayloadLen = DecryptGCM(reader.GetCurrentData(), reader.GetRemainingSize(), masterKey->secret.data(), masterPayload);
+    const int masterPayloadLen = DecryptGCM(reader.GetCurrentData(), reader.GetRemainingSize(), masterKey->secret_.data(), masterPayload);
 
     BigEndianByteReader masterPayloadReader(masterPayload, masterPayloadLen);
 
     const Timestamp expires = Timestamp::FromEpochMilli(masterPayloadReader.ReadInt64());
-    const Timestamp created = Timestamp::FromEpochMilli(masterPayloadReader.ReadInt64());
+    const Timestamp created = Timestamp::FromEpochMilli(masterPayloadReader.ReadInt64());  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
-    const auto operatorSiteId = masterPayloadReader.ReadInt32();
-    const auto operatorType = masterPayloadReader.ReadByte();
-    const auto operatorVersion = masterPayloadReader.ReadInt32();
-    const auto operatorClientKeyId = masterPayloadReader.ReadInt32();
+    const auto operatorSiteId = masterPayloadReader.ReadInt32();       // NOLINT(clang-analyzer-deadcode.DeadStores)
+    const auto operatorType = masterPayloadReader.ReadByte();          // NOLINT(clang-analyzer-deadcode.DeadStores)
+    const auto operatorVersion = masterPayloadReader.ReadInt32();      // NOLINT(clang-analyzer-deadcode.DeadStores)
+    const auto operatorClientKeyId = masterPayloadReader.ReadInt32();  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
     const auto siteKeyId = masterPayloadReader.ReadInt32();
-    const auto siteKey = keys.Get(siteKeyId);
+    const auto* const siteKey = keys.Get(siteKeyId);
     if (siteKey == nullptr) {
         return DecryptionResult::MakeError(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY);
     }
@@ -175,27 +177,27 @@ DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer&
     if (masterPayloadReader.GetRemainingSize() > sizeof(sitePayload)) {
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
     }
-    const auto sitePayloadLen = DecryptGCM(masterPayloadReader.GetCurrentData(), masterPayloadReader.GetRemainingSize(), siteKey->secret.data(), sitePayload);
+    const auto sitePayloadLen = DecryptGCM(masterPayloadReader.GetCurrentData(), masterPayloadReader.GetRemainingSize(), siteKey->secret_.data(), sitePayload);
 
     BigEndianByteReader sitePayloadReader(sitePayload, sitePayloadLen);
 
     const auto siteId = sitePayloadReader.ReadInt32();
-    const auto publisherId = sitePayloadReader.ReadInt64();
-    const auto publisherKeyId = sitePayloadReader.ReadInt32();
+    const auto publisherId = sitePayloadReader.ReadInt64();     // NOLINT(clang-analyzer-deadcode.DeadStores)
+    const auto publisherKeyId = sitePayloadReader.ReadInt32();  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
-    const auto privacyBits = sitePayloadReader.ReadInt32();
+    const auto privacyBits = sitePayloadReader.ReadInt32();  // NOLINT(clang-analyzer-deadcode.DeadStores)
     const Timestamp established = Timestamp::FromEpochMilli(sitePayloadReader.ReadInt64());
-    const Timestamp refreshed = Timestamp::FromEpochMilli(sitePayloadReader.ReadInt64());
+    const Timestamp refreshed = Timestamp::FromEpochMilli(sitePayloadReader.ReadInt64());  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
     if (checkValidity && expires < now) {
-        return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId, siteKey->siteId);
+        return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId, siteKey->siteId_);
     }
 
     const std::vector<std::uint8_t> identityBytes(
         sitePayloadReader.GetCurrentData(), sitePayloadReader.GetCurrentData() + sitePayloadReader.GetRemainingSize());
     auto idString = macaron::Base64::Encode(identityBytes);
 
-    return DecryptionResult::MakeSuccess(std::move(idString), established, siteId, siteKey->siteId);
+    return DecryptionResult::MakeSuccess(std::move(idString), established, siteId, siteKey->siteId_);
 }
 
 EncryptionResult EncryptUID(const std::string& uid, const KeyContainer& keys, Timestamp now, IdentityScope identityScope)
@@ -204,29 +206,30 @@ EncryptionResult EncryptUID(const std::string& uid, const KeyContainer& keys, Ti
         return EncryptionResult::MakeError(EncryptionStatus::KEYS_NOT_SYNCED);
     }
 
-    auto masterKey = keys.getMasterKey(now);
-    if (!masterKey) {
+    const auto* const masterKey = keys.GetMasterKey(now);
+    if (nullptr == masterKey) {
         return EncryptionResult::MakeError(EncryptionStatus::NOT_AUTHORIZED_FOR_MASTER_KEY);
     }
 
-    auto defaultKey = keys.getDefaultKey(now);
-    if (!defaultKey) {
+    const auto* const defaultKey = keys.GetDefaultKey(now);
+    if (nullptr == defaultKey) {
         return EncryptionResult::MakeError(EncryptionStatus::NOT_AUTHORIZED_FOR_KEY);
     }
 
-    Timestamp expiry = now.AddSeconds(keys.getTokenExpirySeconds());
+    const Timestamp expiry = now.AddSeconds(keys.GetTokenExpirySeconds());
     auto encryptParams = EncryptTokenParams().WithTokenExpiry(expiry);
 
-    encryptParams.identityScope = identityScope;
-    std::string encryptionResult = GenerateUid2TokenV4(uid, *masterKey, keys.getCallerSiteId(), *defaultKey, encryptParams);
+    encryptParams.identityScope_ = identityScope;
+    std::string encryptionResult = GenerateUid2TokenV4(uid, *masterKey, keys.GetCallerSiteId(), *defaultKey, encryptParams);
 
     return EncryptionResult::MakeSuccess(std::move(encryptionResult));
 }
 
 EncryptionDataResult EncryptData(const EncryptionDataRequest& req, const KeyContainer* keys, IdentityScope identityScope)
 {
-    if (req.GetData() == nullptr)
+    if (req.GetData() == nullptr) {
         throw std::invalid_argument("data to encrypt must not be null");
+    }
 
     const auto now = req.GetNow();
     const Key* key = req.GetKey();
@@ -235,11 +238,14 @@ EncryptionDataResult EncryptData(const EncryptionDataRequest& req, const KeyCont
         int siteKeySiteId = -1;
         if (keys == nullptr) {
             return EncryptionDataResult::MakeError(EncryptionStatus::NOT_INITIALIZED);
-        } else if (!keys->IsValid(now)) {
+        }
+        if (!keys->IsValid(now)) {
             return EncryptionDataResult::MakeError(EncryptionStatus::KEYS_NOT_SYNCED);
-        } else if (req.GetSiteId() > 0 && !req.GetAdvertisingToken().empty()) {
+        }
+        if (req.GetSiteId() > 0 && !req.GetAdvertisingToken().empty()) {
             throw std::invalid_argument("only one of siteId or advertisingToken can be specified");
-        } else if (req.GetSiteId() > 0) {
+        }
+        if (req.GetSiteId() > 0) {
             siteId = req.GetSiteId();
             siteKeySiteId = siteId;
         } else {
@@ -258,7 +264,7 @@ EncryptionDataResult EncryptData(const EncryptionDataRequest& req, const KeyCont
     } else if (!key->IsActive(now)) {
         return EncryptionDataResult::MakeError(EncryptionStatus::KEY_INACTIVE);
     } else {
-        siteId = key->siteId;
+        siteId = key->siteId_;
     }
 
     const std::uint8_t* iv = req.GetInitializationVector();
@@ -270,14 +276,14 @@ EncryptionDataResult EncryptData(const EncryptionDataRequest& req, const KeyCont
     BigEndianByteWriter payloadWriter(payload);
     payloadWriter.WriteInt64(now.GetEpochMilli());
     payloadWriter.WriteInt32(siteId);
-    payloadWriter.WriteBytes(req.GetData(), 0, req.GetDataSize());
+    payloadWriter.WriteBytes(req.GetData(), 0, static_cast<int>(req.GetDataSize()));
 
     std::vector<std::uint8_t> encryptedBytes(payload.size() + GCM_IV_LENGTH + GCM_AUTHTAG_LENGTH + 6);
     BigEndianByteWriter writer(encryptedBytes);
-    writer.WriteByte((std::uint8_t)PayloadType::ENCRYPTED_DATA_V3 | ((std::uint8_t)identityScope << 4) | 0xB);
-    writer.WriteByte((std::uint8_t)112);  // version
-    writer.WriteInt32(key->id);
-    EncryptGCM(payload.data(), payload.size(), iv, key->secret.data(), encryptedBytes.data() + writer.GetPosition());
+    writer.WriteByte(static_cast<std::uint8_t>(PayloadType::ENCRYPTED_DATA_V3) | (static_cast<std::uint8_t>(identityScope) << 4) | 0xB);
+    writer.WriteByte(static_cast<std::uint8_t>(112));  // version
+    writer.WriteInt32(static_cast<std::int32_t>(key->id_));
+    EncryptGCM(payload.data(), static_cast<int>(payload.size()), iv, key->secret_.data(), encryptedBytes.data() + writer.GetPosition());
 
     return EncryptionDataResult::MakeSuccess(macaron::Base64::Encode(encryptedBytes));
 }
@@ -292,27 +298,25 @@ DecryptionDataResult DecryptData(const std::vector<std::uint8_t>& encryptedBytes
         return DecryptionDataResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
     }
 
-    if ((encryptedBytes[0] & 224) == (std::uint8_t)PayloadType::ENCRYPTED_DATA_V3) {
-        return DecryptDataV3(encryptedBytes, keys, identityScope);
-    } else {
-        return DecryptDataV2(encryptedBytes, keys);
-    }
+    return ((encryptedBytes[0] & 224) == static_cast<std::uint8_t>(PayloadType::ENCRYPTED_DATA_V3)) ? DecryptDataV3(encryptedBytes, keys, identityScope)
+                                                                                                    : DecryptDataV2(encryptedBytes, keys);
 }
 
 static DecryptionDataResult DecryptDataV2(const std::vector<std::uint8_t>& encryptedBytes, const KeyContainer& keys)
 {
     BigEndianByteReader reader(encryptedBytes);
 
-    if (reader.ReadByte() != (std::uint8_t)PayloadType::ENCRYPTED_DATA) {
+    if (reader.ReadByte() != static_cast<std::uint8_t>(PayloadType::ENCRYPTED_DATA)) {
         return DecryptionDataResult::MakeError(DecryptionStatus::INVALID_PAYLOAD_TYPE);
-    } else if (reader.ReadByte() != 1) {
+    }
+    if (reader.ReadByte() != 1) {
         return DecryptionDataResult::MakeError(DecryptionStatus::VERSION_NOT_SUPPORTED);
     }
 
     const auto encryptedAt = Timestamp::FromEpochMilli(reader.ReadInt64());
-    const int siteId = reader.ReadInt32();
+    const int siteId = reader.ReadInt32();  // NOLINT(clang-analyzer-deadcode.DeadStores)
     const std::int64_t keyId = reader.ReadInt32();
-    const auto key = keys.Get(keyId);
+    const auto* const key = keys.Get(keyId);
     if (key == nullptr) {
         return DecryptionDataResult::MakeError(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY);
     }
@@ -320,7 +324,7 @@ static DecryptionDataResult DecryptDataV2(const std::vector<std::uint8_t>& encry
     std::uint8_t iv[BLOCK_SIZE];
     reader.ReadBytes(iv, 0, sizeof(iv));
     std::vector<std::uint8_t> decryptedBytes;
-    Decrypt(&encryptedBytes[34], encryptedBytes.size() - 34, iv, key->secret.data(), decryptedBytes);
+    Decrypt(&encryptedBytes[34], static_cast<int>(encryptedBytes.size()) - 34, iv, key->secret_.data(), decryptedBytes);
 
     return DecryptionDataResult::MakeSuccess(std::move(decryptedBytes), encryptedAt);
 }
@@ -337,17 +341,17 @@ static DecryptionDataResult DecryptDataV3(const std::vector<std::uint8_t>& encry
     }
 
     const auto keyId = reader.ReadInt32();
-    const auto key = keys.Get(keyId);
+    const auto* const key = keys.Get(keyId);
     if (key == nullptr) {
         return DecryptionDataResult::MakeError(DecryptionStatus::NOT_AUTHORIZED_FOR_KEY);
     }
 
     std::vector<std::uint8_t> payload(reader.GetRemainingSize());
-    const auto payloadLen = DecryptGCM(reader.GetCurrentData(), reader.GetRemainingSize(), key->secret.data(), payload.data());
+    const auto payloadLen = DecryptGCM(reader.GetCurrentData(), reader.GetRemainingSize(), key->secret_.data(), payload.data());
 
     BigEndianByteReader payloadReader(payload.data(), payloadLen);
     const auto encryptedAt = Timestamp::FromEpochMilli(payloadReader.ReadInt64());
-    const int siteId = payloadReader.ReadInt32();
+    const int siteId = payloadReader.ReadInt32();  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
     return DecryptionDataResult::MakeSuccess({payloadReader.GetCurrentData(), payloadReader.GetCurrentData() + payloadReader.GetRemainingSize()}, encryptedAt);
 }
@@ -355,15 +359,17 @@ static DecryptionDataResult DecryptDataV3(const std::vector<std::uint8_t>& encry
 void Decrypt(const std::uint8_t* data, int size, const std::uint8_t* iv, const std::uint8_t* secret, std::vector<std::uint8_t>& out_decrypted)
 {
     AES256 aes;
-    const int paddedSize = (int)aes.GetPaddingLength(size);
-    if (paddedSize != size || size < 16)
+    const int paddedSize = static_cast<int>(aes.GetPaddingLength(size));
+    if (paddedSize != size || size < 16) {
         throw "invalid input";
+    }
     out_decrypted.resize(paddedSize);
-    aes.DecryptCBC(data, size, secret, iv, &out_decrypted[0]);
+    aes.DecryptCBC(data, size, secret, iv, out_decrypted.data());
     // Remove PKCS7 padding
     const int padlen = out_decrypted[size - 1];
-    if (padlen < 1 || padlen > 16)
+    if (padlen < 1 || padlen > 16) {
         throw "invalid pkcs7 padding";
+    }
     out_decrypted.resize(size - padlen);
 }
 
@@ -380,7 +386,7 @@ void RandomBytes(std::uint8_t* out, int count)
 {
     const int rc = RAND_bytes(out, count);
     if (rc <= 0) {
-        throw std::runtime_error("failed to generate random bytes: " + std::to_string(ERR_get_error()));
+        throw std::runtime_error("failed to generate random bytes_: " + std::to_string(ERR_get_error()));
     }
 }
 
@@ -407,22 +413,22 @@ static int EncryptGCM(const std::uint8_t* data, int size, const std::uint8_t* iv
         throw std::runtime_error("failed to allocate new cipher context");
     }
 
-    if (!EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_gcm(), nullptr, secret, out_encrypted)) {
+    if (0 == EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_gcm(), nullptr, secret, out_encrypted)) {
         throw std::runtime_error("failed to init encryption");
     }
 
     int outLen = 0;
-    if (!EVP_EncryptUpdate(ctx.get(), out_encrypted + totalLen, &outLen, data, size)) {
+    if (0 == EVP_EncryptUpdate(ctx.get(), out_encrypted + totalLen, &outLen, data, size)) {
         throw std::runtime_error("failed to encrypt");
     }
     totalLen += outLen;
 
-    if (!EVP_EncryptFinal_ex(ctx.get(), out_encrypted + totalLen, &outLen)) {
+    if (0 == EVP_EncryptFinal_ex(ctx.get(), out_encrypted + totalLen, &outLen)) {
         throw std::runtime_error("failed to finalize encrypt");
     }
     totalLen += outLen;
 
-    if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, GCM_AUTHTAG_LENGTH, out_encrypted + totalLen)) {
+    if (0 == EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_GET_TAG, GCM_AUTHTAG_LENGTH, out_encrypted + totalLen)) {
         throw std::runtime_error("failed to get tag");
     }
     totalLen += GCM_AUTHTAG_LENGTH;
@@ -441,17 +447,17 @@ int DecryptGCM(const std::uint8_t* encrypted, int size, const std::uint8_t* secr
         throw std::runtime_error("failed to allocate new cipher context");
     }
 
-    if (!EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_gcm(), nullptr, secret, encrypted)) {
+    if (0 == EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_gcm(), nullptr, secret, encrypted)) {
         throw std::runtime_error("failed to init decryption");
     }
 
     int outLen = 0;
-    if (!EVP_DecryptUpdate(ctx.get(), out_decrypted, &outLen, encrypted + GCM_IV_LENGTH, size - (GCM_IV_LENGTH + GCM_AUTHTAG_LENGTH))) {
+    if (0 == EVP_DecryptUpdate(ctx.get(), out_decrypted, &outLen, encrypted + GCM_IV_LENGTH, size - (GCM_IV_LENGTH + GCM_AUTHTAG_LENGTH))) {
         throw std::runtime_error("failed to decrypt");
     }
     const int totalLen = outLen;
 
-    if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, GCM_AUTHTAG_LENGTH, (void*)(encrypted + (size - GCM_AUTHTAG_LENGTH)))) {
+    if (0 == EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, GCM_AUTHTAG_LENGTH, const_cast<std::uint8_t*>(encrypted + (size - GCM_AUTHTAG_LENGTH)))) {
         throw std::runtime_error("failed to set auth tag for decrypt");
     }
 
@@ -464,6 +470,6 @@ int DecryptGCM(const std::uint8_t* encrypted, int size, const std::uint8_t* secr
 
 static IdentityScope DecodeIdentityScopeV3(std::uint8_t value)
 {
-    return (IdentityScope)((value >> 4) & 1);
+    return static_cast<IdentityScope>((value >> 4) & 1);
 }
 }  // namespace uid2

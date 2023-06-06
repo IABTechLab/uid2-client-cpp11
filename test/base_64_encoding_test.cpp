@@ -6,7 +6,7 @@
 
 // for testing base64/base64url encoding/decoding in "base64.h"
 
-void VerifyEncodingDecodingTables(
+static void VerifyEncodingDecodingTables(
     const std::string& expectedEncodingTable,
     const char encodingTable[],
     const unsigned int encodingTableLen,
@@ -18,9 +18,9 @@ void VerifyEncodingDecodingTables(
     EXPECT_EQ(expectedEncodingTable.size(), encodingTableLen);
     for (int i = 0; i < expectedEncodingTable.size(); i++) {
         EXPECT_EQ(expectedEncodingTable[i], encodingTable[i]);
-        char chr = expectedEncodingTable[i];
-        unsigned int decoderTableIndex = static_cast<unsigned int>(chr);
-        unsigned int decodedValue = decodingTable[decoderTableIndex];
+        const char chr = expectedEncodingTable[i];
+        const auto decoderTableIndex = static_cast<unsigned char>(chr);
+        const unsigned int decodedValue = decodingTable[decoderTableIndex];
         EXPECT_EQ(decodedValue, i);
         decodedValues.insert(decoderTableIndex);
     }

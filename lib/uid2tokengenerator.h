@@ -12,12 +12,12 @@ struct EncryptTokenParams {
 
     EncryptTokenParams& WithTokenExpiry(uid2::Timestamp expiry)
     {
-        tokenExpiry = expiry;
+        tokenExpiry_ = expiry;
         return *this;
     }
 
-    uid2::Timestamp tokenExpiry = uid2::Timestamp::Now().AddSeconds(60);
-    uid2::IdentityScope identityScope = uid2::IdentityScope::UID2;
+    uid2::Timestamp tokenExpiry_ = uid2::Timestamp::Now().AddSeconds(60);
+    uid2::IdentityScope identityScope_ = uid2::IdentityScope::UID2;
 };
 
 std::string GenerateUid2TokenV2(

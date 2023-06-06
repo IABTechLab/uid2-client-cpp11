@@ -15,11 +15,12 @@
     {
       "name": "clang-tidy",
       "inherits": "default",
+      "generator": "Unix Makefiles",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_C_COMPILER": "clang-14",
         "CMAKE_CXX_COMPILER": "clang++-14",
-        "ENABLE_CLANG_TIDY": "ON"
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy-14"
       }
     },
     {
