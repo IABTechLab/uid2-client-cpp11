@@ -1,0 +1,20 @@
+name: clang-format check
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Dev environment
+      run: |
+        sudo ${{github.workspace}}/tools/install-ubuntu-devtools.sh
+
+    - name: Clang format check
+      run: ${{github.workspace}}/tools/format.sh
+
+    - name: Instructions in case of failure
+      if: ${{ failure() }}
+      run: echo >&2 "clang-format check failed, consider running './tools/devenv.sh ./tools/format.sh --fix' on your local repo to fix the formatting violations"
