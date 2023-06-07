@@ -61,8 +61,8 @@ make install
 You can build a docker image containing the necessary tools and dependencies and then use that to build and test the SDK.
 
 ```
-docker build -t uid2_client_cpp_devenv
-docker run -it --rm -v "$PWD:$PWD" -u $(id -u ${USER}):$(id -g ${USER}) -w "$PWD" uid2-client-cpp-build ./tools/build.sh
+docker build -t uid2_client_cpp_devenv .
+docker run -it --rm -v "$PWD:$PWD" -u $(id -u ${USER}):$(id -g ${USER}) -w "$PWD" uid2_client_cpp_devenv ./tools/build.sh
 # or
 ./tools/devenv.sh ./tools/build.sh
 ```
