@@ -122,7 +122,7 @@ std::string GenerateUID2TokenWithDebugInfo(
     const char firstChar = uid[0];
     const IdentityType identityType = (firstChar == 'F' || firstChar == 'B') ? IdentityType::PHONE : IdentityType::EMAIL;  // see UID2-79+Token+and+ID+format+v3
 
-    writer.WriteByte(((static_cast<std::uint8_t>(params.identityScope_) << 4) | (static_cast<std::uint8_t>(identityType) << 2)));
+    writer.WriteByte(((static_cast<std::uint8_t>(params.identityScope_) << 4) | (static_cast<std::uint8_t>(identityType) << 2)) | 3);
     writer.WriteByte(static_cast<uint8_t>(adTokenVersion));
     writer.WriteInt32(static_cast<std::int32_t>(masterKey.id_));
 
