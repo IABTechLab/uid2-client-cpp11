@@ -130,7 +130,6 @@ TEST(EncryptionTestsV4, SmokeTest)
     EXPECT_EQ(EXAMPLE_UID, res.GetUid());
 }
 
-
 TEST(EncryptionTestsV4, EmptyKeyContainer)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
