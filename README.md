@@ -24,8 +24,8 @@ Other dependencies:
 To set up dependencies on Ubuntu 22.04:
 
 ```
-./tools/install-ubuntu-devtools.sh
-./tools/install-ubuntu-deps.sh
+sudo ./tools/install-ubuntu-devtools.sh
+sudo ./tools/install-ubuntu-deps.sh
 ```
 
 To set up dependencies on Mac OS X, make sure you have latest xcode installed, then:
@@ -55,7 +55,7 @@ cd build
 cmake ..
 make
 make test
-make install
+sudo make install
 ```
 
 You can build a docker image containing the necessary tools and dependencies and then use that to build and test the SDK.
