@@ -95,19 +95,24 @@ void ValidateAdvertisingToken(const std::string& advertisingTokenString, Identit
     if (identityScope == IdentityScope::UID2) {
         EXPECT_EQ(identityType == IdentityType::EMAIL ? "A" : "B", firstChar);
     } else {
-        EXPECT_EQ(identityType == IdentityType::EMAIL  ? "E" : "F", firstChar);
+        EXPECT_EQ(identityType == IdentityType::EMAIL ? "E" : "F", firstChar);
     }
 
     std::string secondChar = advertisingTokenString.substr(1, 1);
     EXPECT_EQ("4", secondChar);
 
-    //No URL-unfriendly characters allowed:
+    // No URL-unfriendly characters allowed:
     EXPECT_EQ(std::string::npos, advertisingTokenString.find('='));
     EXPECT_EQ(std::string::npos, advertisingTokenString.find('+'));
     EXPECT_EQ(std::string::npos, advertisingTokenString.find('/'));
 }
 
-std::string GenerateUid2TokenV4AndValidate(const std::string& identity, const uid2::Key& masterKey, int siteId, const uid2::Key& siteKey, EncryptTokenParams params = EncryptTokenParams())
+std::string GenerateUid2TokenV4AndValidate(
+    const std::string& identity,
+    const uid2::Key& masterKey,
+    int siteId,
+    const uid2::Key& siteKey,
+    EncryptTokenParams params = EncryptTokenParams())
 {
     std::string advertisingToken = GenerateUid2TokenV4(identity, masterKey, siteId, siteKey, params);
     ValidateAdvertisingToken(advertisingToken, IdentityScope::UID2, IdentityType::EMAIL);
