@@ -143,7 +143,7 @@ DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer&
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_IDENTITY_SCOPE);
     }
 
-    /*const auto version = */reader.ReadByte();
+    /*const auto version = */ reader.ReadByte();
 
     const std::int32_t masterKeyId = reader.ReadInt32();
     const auto* const masterKey = keys.Get(masterKeyId);
@@ -152,7 +152,7 @@ DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer&
     }
 
     std::uint8_t masterPayload[256];
-    if (reader.GetRemainingSize() > static_cast<int>(sizeof(masterPayload))){
+    if (reader.GetRemainingSize() > static_cast<int>(sizeof(masterPayload))) {
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
     }
     const int masterPayloadLen = DecryptGCM(reader.GetCurrentData(), reader.GetRemainingSize(), masterKey->secret_.data(), masterPayload);
@@ -160,12 +160,12 @@ DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer&
     BigEndianByteReader masterPayloadReader(masterPayload, masterPayloadLen);
 
     const Timestamp expires = Timestamp::FromEpochMilli(masterPayloadReader.ReadInt64());
-    /*const Timestamp created = */Timestamp::FromEpochMilli(masterPayloadReader.ReadInt64());
+    /*const Timestamp created = */ Timestamp::FromEpochMilli(masterPayloadReader.ReadInt64());
 
-    /*const auto operatorSiteId = */masterPayloadReader.ReadInt32();
-    /*const auto operatorType = */masterPayloadReader.ReadByte();
-    /*const auto operatorVersion = */masterPayloadReader.ReadInt32();
-    /*const auto operatorClientKeyId = */masterPayloadReader.ReadInt32();
+    /*const auto operatorSiteId = */ masterPayloadReader.ReadInt32();
+    /*const auto operatorType = */ masterPayloadReader.ReadByte();
+    /*const auto operatorVersion = */ masterPayloadReader.ReadInt32();
+    /*const auto operatorClientKeyId = */ masterPayloadReader.ReadInt32();
 
     const auto siteKeyId = masterPayloadReader.ReadInt32();
     const auto* const siteKey = keys.Get(siteKeyId);
@@ -182,12 +182,12 @@ DecryptTokenV3(const std::vector<std::uint8_t>& encryptedId, const KeyContainer&
     BigEndianByteReader sitePayloadReader(sitePayload, sitePayloadLen);
 
     const auto siteId = sitePayloadReader.ReadInt32();
-    /*const auto publisherId = */sitePayloadReader.ReadInt64();
-    /*const auto publisherKeyId = */sitePayloadReader.ReadInt32();
+    /*const auto publisherId = */ sitePayloadReader.ReadInt64();
+    /*const auto publisherKeyId = */ sitePayloadReader.ReadInt32();
 
-    /*const auto privacyBits = */sitePayloadReader.ReadInt32();
+    /*const auto privacyBits = */ sitePayloadReader.ReadInt32();
     const Timestamp established = Timestamp::FromEpochMilli(sitePayloadReader.ReadInt64());
-    /*const Timestamp refreshed = */Timestamp::FromEpochMilli(sitePayloadReader.ReadInt64());
+    /*const Timestamp refreshed = */ Timestamp::FromEpochMilli(sitePayloadReader.ReadInt64());
 
     if (checkValidity && expires < now) {
         return DecryptionResult::MakeError(DecryptionStatus::EXPIRED_TOKEN, established, siteId, siteKey->siteId_);
@@ -314,7 +314,7 @@ static DecryptionDataResult DecryptDataV2(const std::vector<std::uint8_t>& encry
     }
 
     const auto encryptedAt = Timestamp::FromEpochMilli(reader.ReadInt64());
-    /*const int siteId = */reader.ReadInt32();
+    /*const int siteId = */ reader.ReadInt32();
     const std::int64_t keyId = reader.ReadInt32();
     const auto* const key = keys.Get(keyId);
     if (key == nullptr) {
@@ -351,7 +351,7 @@ static DecryptionDataResult DecryptDataV3(const std::vector<std::uint8_t>& encry
 
     BigEndianByteReader payloadReader(payload.data(), payloadLen);
     const auto encryptedAt = Timestamp::FromEpochMilli(payloadReader.ReadInt64());
-    /*const int siteId = */payloadReader.ReadInt32();
+    /*const int siteId = */ payloadReader.ReadInt32();
 
     return DecryptionDataResult::MakeSuccess({payloadReader.GetCurrentData(), payloadReader.GetCurrentData() + payloadReader.GetRemainingSize()}, encryptedAt);
 }
