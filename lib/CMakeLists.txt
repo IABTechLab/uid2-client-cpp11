@@ -19,6 +19,8 @@ add_library(uid2client
 	${EXTERNAL_SOURCES}
 	${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
+set_source_files_properties(${EXTERNAL_SOURCES} PROPERTIES COMPILE_FLAGS -Wno-error)
+
 target_include_directories(uid2client SYSTEM
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external
 	PRIVATE ${OPENSSL_INCLUDE_DIR})

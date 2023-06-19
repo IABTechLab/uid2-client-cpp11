@@ -76,8 +76,8 @@ private:
     }
 
     const std::uint8_t* bytes_;
-    int position_;
     int size_;
+    int position_;
 };
 
 class BigEndianByteWriter {
@@ -140,7 +140,7 @@ private:
     }
 
     std::uint8_t* bytes_;
-    int position_;
     int size_;
+    int position_;
 };
 }  // namespace uid2

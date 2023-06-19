@@ -16,7 +16,7 @@ static void VerifyEncodingDecodingTables(
     std::set<unsigned int> decodedValues;
     EXPECT_EQ(expectedEncodingTable.size(), 64);
     EXPECT_EQ(expectedEncodingTable.size(), encodingTableLen);
-    for (int i = 0; i < expectedEncodingTable.size(); i++) {
+    for (int i = 0; i < static_cast<int>(expectedEncodingTable.size()); i++) {
         EXPECT_EQ(expectedEncodingTable[i], encodingTable[i]);
         const char chr = expectedEncodingTable[i];
         const auto decoderTableIndex = static_cast<unsigned char>(chr);
@@ -27,7 +27,7 @@ static void VerifyEncodingDecodingTables(
 
     // verify all the non-base64/base64url chars must have decoding value of 64 (b1000000)
     EXPECT_EQ(decodingTableLen, 256);
-    for (int i = 0; i < decodingTableLen; i++) {
+    for (unsigned int i = 0; i < decodingTableLen; i++) {
         if (decodedValues.find(i) == decodedValues.end()) {
             std::cout << i << std::endl;
             EXPECT_EQ(decodingTable[i], 64);

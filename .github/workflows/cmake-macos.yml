@@ -1,4 +1,4 @@
-name: CMake Mac
+name: CMake macOS
 
 on: [push]
 
@@ -14,7 +14,7 @@ jobs:
 
     - name: Dev environment
       run: |
-        ${{github.workspace}}/tools/install-macosx-deps.sh
+        ${{github.workspace}}/tools/install-macos-deps.sh
 
     - name: Build and Test
       run: ${{github.workspace}}/tools/build.sh ${{matrix.build_type}}-${{matrix.compiler}}

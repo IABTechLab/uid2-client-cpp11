@@ -28,11 +28,8 @@ static std::string KeySetToJsonForSharing(const std::vector<Key>& keys);
 
 static std::string KeySetToJsonForSharingWithHeader(const std::string& defaultKeyset, int callerSiteId, const std::vector<Key>& keys);
 
-static std::vector<std::uint8_t> Base64Decode(const std::string& str);
-
 static const int MASTER_KEYSET_ID = 1;
 static const int DEFAULT_KEYSET_ID = 99999;
-static const int TOKEN_EXPIRY_SECONDS = 86400;
 static const std::int64_t MASTER_KEY_ID = 164;
 static const std::int64_t SITE_KEY_ID = 165;
 static const int SITE_ID = 9000;
@@ -84,7 +81,7 @@ void crossPlatformConsistencyCheck_Base64UrlTest(const std::vector<std::uint8_t>
     std::vector<std::uint8_t> decoded;
     uid2::UID2Base64UrlCoder::Decode(base64UrlEncodedStr, decoded);
     EXPECT_EQ(rawInputLen, decoded.size());
-    for (int i = 0; i < decoded.size(); i++) {
+    for (size_t i = 0; i < decoded.size(); i++) {
         EXPECT_EQ(rawInput[i], decoded[i]);
     }
 }
@@ -541,11 +538,4 @@ std::vector<std::uint8_t> GetSiteSecret()
 std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v)
 {
     return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);  // NOLINT
-}
-
-std::vector<std::uint8_t> Base64Decode(const std::string& str)
-{
-    std::vector<std::uint8_t> result;
-    macaron::Base64::Decode(str, result);
-    return result;
 }
