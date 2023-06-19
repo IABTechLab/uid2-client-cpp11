@@ -8,6 +8,11 @@ This SDK simplifies integration with UID2 for those using C++.
 
 This SDK requires C++ version 11.
 
+Supported platforms:
+
+ - Linux (tested on Ubuntu 22.04)
+ - MacOS (tested on macOS 12 Monterey and macOS 13 Ventura)
+
 Supported compilers:
 
  - clang (tested on versions 12 and 14)
@@ -28,10 +33,10 @@ sudo ./tools/install-ubuntu-devtools.sh
 sudo ./tools/install-ubuntu-deps.sh
 ```
 
-To set up dependencies on Mac OS X, make sure you have latest xcode installed, then:
+To set up dependencies on macOS, make sure you have latest xcode installed, then:
 
 ```
-./tools/install-macosx-deps.sh
+./tools/install-macos-deps.sh
 ```
 
 If you want to have clang-14 installed on Mac, run these additional commands:
@@ -90,6 +95,12 @@ Most modern IDEs should pick that up automatically. To reformat all the code, ru
 
 ```
 ./tools/devenv.sh ./tools/format.sh --fix
+```
+
+By default, compiler warnings are treated as errors. To temporarily disable this behavior, set CMake `WARNING_AS_ERROR` option to `OFF`. For example:
+
+```
+cmake -DWARNING_AS_ERROR=OFF
 ```
 
 Additionally the codebase is subject to clang-tidy checks. Some IDEs can pick that up automatically. Otherwise

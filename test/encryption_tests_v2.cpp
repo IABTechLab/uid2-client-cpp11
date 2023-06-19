@@ -12,7 +12,6 @@ using namespace uid2;
 
 static std::vector<std::uint8_t> GetMasterSecret();
 static std::vector<std::uint8_t> GetSiteSecret();
-static std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v);
 static std::string KeySetToJson(const std::vector<Key>& keys);
 static std::vector<std::uint8_t> Base64Decode(const std::string& str);
 
@@ -208,11 +207,6 @@ std::vector<std::uint8_t> GetMasterSecret()
 std::vector<std::uint8_t> GetSiteSecret()
 {
     return {SITE_SECRET, SITE_SECRET + sizeof(SITE_SECRET)};
-}
-
-std::vector<std::uint8_t> MakeKeySecret(std::uint8_t v)
-{
-    return std::vector<std::uint8_t>(sizeof(SITE_SECRET), v);  // NOLINT
 }
 
 std::vector<std::uint8_t> Base64Decode(const std::string& str)
