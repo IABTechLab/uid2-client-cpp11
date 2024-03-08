@@ -74,13 +74,11 @@ docker run -it --rm -v "$PWD:$PWD" -u $(id -u ${USER}):$(id -g ${USER}) -w "$PWD
 
 ## Usage
 
-To create a UID2 client instance, use `UID2ClientFactory::Create`. For an EUID client instance, use `EUIDClientFactory::Create`.
+For documentation on usage, see the [UID2 SDK for C++ Reference Guide](https://unifiedid.com/docs/sdks/uid2-sdk-ref-cplusplus).
 
- - `client->Refresh()` to fetch the latest keys
- - `client->Decrypt()` to decrypt a UID2 or EUID token
- - `client->Encrypt()` to encrypt a raw UID2 or EUID into a token
+## Example Usage
 
-For an example, see [app/example.cpp](app/example.cpp). To run the example application:
+See [app/example.cpp](app/example.cpp). To run the example application:
 
 ```
 # ./build/app/example <base-url> <api-key> <secret-key> <advertising-token>
