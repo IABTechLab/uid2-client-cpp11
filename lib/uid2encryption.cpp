@@ -50,7 +50,7 @@ DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys
         std::vector<std::uint8_t> encryptedId;
         std::vector<std::uint8_t> headerBytes;
         const std::string headerStr = token.substr(0, 4);
-        
+
         if (isBase64UrlEncoding) {
             uid2::UID2Base64UrlCoder::Decode(headerStr, headerBytes);
         } else {
