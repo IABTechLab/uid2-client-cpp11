@@ -49,6 +49,15 @@ sudo ln -s $(brew --prefix llvm@14)/bin/clang-format /usr/local/bin/clang-format
 sudo ln -s $(brew --prefix llvm@14)/bin/clang-tidy /usr/local/bin/clang-tidy-14
 ```
 
+## Build and Test in CLion Using Docker on Mac OS
+Run
+```
+docker build -t clion/ubuntu/cpp-env:1.0 -f tools/Dockerfile.cpp-env-ubuntu .
+```
+And [setup a Docker Toolchain in CLion](https://www.jetbrains.com/help/clion/clion-toolchains-in-docker.html)
+
+And you would be able to develop and test within CLion easily.
+
 ## Build, Test, Install
 
 To build, run unit tests, and install under the default prefix (`/usr/local`):
