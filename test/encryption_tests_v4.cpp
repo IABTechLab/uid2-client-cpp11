@@ -8,8 +8,8 @@
 
 #include <gtest/gtest.h>
 
-#include <sstream>
 #include <algorithm>
+#include <sstream>
 
 using namespace uid2;
 
