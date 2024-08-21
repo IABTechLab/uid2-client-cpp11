@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <sstream>
+#include <algorithm>
 
 using namespace uid2;
 
@@ -126,9 +127,8 @@ TEST(EncryptionTestsV4, CanDecryptV4TokenEncodedAsBase64)
         const bool hasBase64UrlChars = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
         if (hasBase64UrlChars) {
             break;
-        } else {
-            advertisingToken = GenerateUid2TokenV4AndValidate(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
         }
+        advertisingToken = GenerateUid2TokenV4AndValidate(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
     }
 
     const bool isBase64UrlEncoding = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
