@@ -129,15 +129,12 @@ TEST(EncryptionTestsV4, CanDecryptV4TokenEncodedAsBase64)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
     client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
-    auto advertisingToken = GenerateUid2TokenV4AndValidate(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
+    std::string advertisingToken;
 
-    while (true) {
-        const bool hasBase64UrlChars = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
-        if (hasBase64UrlChars) {
-            break;
-        }
+    // for testing purposes, the token must have some Base64URL encoding characters
+    do {
         advertisingToken = GenerateUid2TokenV4AndValidate(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
-    }
+    } while(!std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; }));
 
     const bool isBase64UrlEncoding = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
     EXPECT_TRUE(isBase64UrlEncoding);
