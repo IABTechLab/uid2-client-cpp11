@@ -44,11 +44,12 @@ DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
     }
 
-    const std::string headerStr = token.substr(0, 4);
-    const bool isBase64UrlEncoding = std::any_of(headerStr.begin(), headerStr.end(), [](char c) { return c == '-' || c == '_'; });
+    // check the whole ad token string instead of the headerStr to make sure
+    const bool isBase64UrlEncoding = std::any_of(token.begin(), token.end(), [](char c) { return c == '-' || c == '_'; });
     try {
         std::vector<std::uint8_t> encryptedId;
         std::vector<std::uint8_t> headerBytes;
+        const std::string headerStr = token.substr(0, 4);
 
         if (isBase64UrlEncoding) {
             uid2::UID2Base64UrlCoder::Decode(headerStr, headerBytes);
@@ -69,8 +70,13 @@ DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys
             return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
         }
         if (headerBytes[1] == static_cast<std::uint8_t>(AdvertisingTokenVersion::V4)) {
-            // same as V3 but use Base64URL encoding
-            uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
+            if (isBase64UrlEncoding) {
+                // same as V3 but use Base64URL encoding
+                uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
+            } else {
+                // handling the rare situation where participant changed the encoding from Base64URL to Base64
+                macaron::Base64::Decode(token, encryptedId);
+            }
             return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
         }
         return DecryptionResult::MakeError(DecryptionStatus::INVALID_PAYLOAD);
