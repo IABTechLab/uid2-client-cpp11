@@ -70,7 +70,7 @@ DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys
             return DecryptTokenV3(encryptedId, keys, now, identityScope, checkValidity);
         }
         if (headerBytes[1] == static_cast<std::uint8_t>(AdvertisingTokenVersion::V4)) {
-            if(isBase64UrlEncoding) {
+            if (isBase64UrlEncoding) {
                 // same as V3 but use Base64URL encoding
                 uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
             }
