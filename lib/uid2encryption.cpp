@@ -73,8 +73,7 @@ DecryptionResult DecryptToken(const std::string& token, const KeyContainer& keys
             if (isBase64UrlEncoding) {
                 // same as V3 but use Base64URL encoding
                 uid2::UID2Base64UrlCoder::Decode(token, encryptedId);
-            }
-            else {
+            } else {
                 // handling the rare situation where participant changed the encoding from Base64URL to Base64
                 macaron::Base64::Decode(token, encryptedId);
             }
