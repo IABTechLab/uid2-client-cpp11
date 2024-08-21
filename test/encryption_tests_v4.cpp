@@ -134,7 +134,6 @@ TEST(EncryptionTestsV4, CanDecryptV4TokenEncodedAsBase64)
     const bool isBase64UrlEncoding = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
     EXPECT_TRUE(isBase64UrlEncoding);
 
-    // Convert it to 0
     std::vector<std::uint8_t> adTokenBytes;
     uid2::UID2Base64UrlCoder::Decode(advertisingToken, adTokenBytes);
 
