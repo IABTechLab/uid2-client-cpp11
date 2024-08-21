@@ -136,9 +136,6 @@ TEST(EncryptionTestsV4, CanDecryptV4TokenEncodedAsBase64)
         advertisingToken = GenerateUid2TokenV4AndValidate(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
     } while (!std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; }));
 
-    const bool isBase64UrlEncoding = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
-    EXPECT_TRUE(isBase64UrlEncoding);
-
     std::vector<std::uint8_t> adTokenBytes;
     uid2::UID2Base64UrlCoder::Decode(advertisingToken, adTokenBytes);
 
