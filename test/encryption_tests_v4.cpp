@@ -116,6 +116,40 @@ std::string GenerateUid2TokenV4AndValidate(
     return advertisingToken;
 }
 
+TEST(EncryptionTestsV4, CanDecryptV4TokenEncodedAsBase64)
+{
+    UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
+    client.RefreshJson(KeySetToJson({MASTER_KEY, SITE_KEY}));
+    auto advertisingToken = GenerateUid2TokenV4AndValidate(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
+
+    while(true) {
+        const bool hasBase64UrlChars = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
+        if (hasBase64UrlChars) {
+            break;
+        }
+        else {
+            advertisingToken = GenerateUid2TokenV4AndValidate(EXAMPLE_UID, MASTER_KEY, SITE_ID, SITE_KEY, EncryptTokenParams());
+        }
+    }
+
+    const bool isBase64UrlEncoding = std::any_of(advertisingToken.begin(), advertisingToken.end(), [](char c) { return c == '-' || c == '_'; });
+    EXPECT_TRUE(isBase64UrlEncoding);
+
+    //Convert it to 0
+    std::vector<std::uint8_t> adTokenBytes;
+    uid2::UID2Base64UrlCoder::Decode(advertisingToken, adTokenBytes);
+
+    //explicitly encode into Base64 (non-URL friendly) encoding again
+    const auto base64NonURLAdTokenV4 = macaron::Base64::Encode(adTokenBytes);
+    const bool isBase64NonUrlEncoding = std::any_of(base64NonURLAdTokenV4.begin(), base64NonURLAdTokenV4.end(), [](char c) { return c == '=' || c == '+' || c == '/'; });
+    EXPECT_TRUE(isBase64NonUrlEncoding);
+
+    const auto res = client.Decrypt(base64NonURLAdTokenV4, Timestamp::Now());
+    EXPECT_TRUE(res.IsSuccess());
+    EXPECT_EQ(DecryptionStatus::SUCCESS, res.GetStatus());
+    EXPECT_EQ(EXAMPLE_UID, res.GetUid());
+}
+
 TEST(EncryptionTestsV4, SmokeTest)
 {
     UID2Client client("ep", "ak", CLIENT_SECRET, IdentityScope::UID2);
