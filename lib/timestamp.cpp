@@ -5,6 +5,6 @@
 namespace uid2 {
 Timestamp Timestamp::Now()
 {
-    return Timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    return Timestamp(Clock::now().time_since_epoch());
 }
 }  // namespace uid2
