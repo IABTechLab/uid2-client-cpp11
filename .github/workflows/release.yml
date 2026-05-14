@@ -3,7 +3,15 @@ name: Release
 on: [workflow_dispatch]
 
 jobs:
+  approve-publish:
+    name: Approve publish
+    runs-on: ubuntu-latest
+    environment: sdk-publish-approval
+    steps:
+      - run: echo "Publish approved"
+
   build:
+    needs: approve-publish
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
