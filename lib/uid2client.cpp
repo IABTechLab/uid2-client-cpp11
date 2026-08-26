@@ -5,7 +5,7 @@
 #include "keyparser.h"
 #include "uid2encryption.h"
 #include "version.h"
-
+#include <cstdlib> // For getenv
 #include <uid2/uid2client.h>
 
 #include <mutex>
@@ -27,7 +27,16 @@ struct UID2Client::Impl {
     {
         macaron::Base64::Decode(secretKey, this->secretKey_);
 
-        if (endpoint_.find("https") != 0) {
+        if (endpoint_.find("https") == 0) {
+            // Check if the CA_CERT_FILE_PATH/CA_CERT_DIR_PATH environment variables are set
+            const char* caCertFilePath = std::getenv("CA_CERT_FILE_PATH");
+            const char* caCertDirPath = std::getenv("CA_CERT_DIR_PATH");
+
+            // Use CA_CERT_FILE_PATH/CA_CERT_DIR_PATH if set, otherwise fallback to the default path
+            httpClient_.set_ca_cert_path(caCertFilePath ? caCertFilePath : "/etc/ssl/certs/ca-certificates.crt",
+                                            caCertDirPath ? caCertDirPath : "/etc/ssl/certs/");
+            httpClient_.enable_server_certificate_verification(true);
+        } else {
             // TODO: non-https endpoint warning
         }
 
